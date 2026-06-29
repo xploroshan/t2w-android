@@ -3,6 +3,7 @@ package com.taleson2wheels.app.ui
 import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -24,6 +25,8 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.taleson2wheels.app.ui.achievements.AchievementsScreen
+import com.taleson2wheels.app.ui.blogs.BlogDetailScreen
+import com.taleson2wheels.app.ui.blogs.BlogsScreen
 import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
 import com.taleson2wheels.app.ui.garage.GarageScreen
@@ -40,6 +43,7 @@ import com.taleson2wheels.app.ui.rides.RidesScreen
 object Routes {
     const val HOME = "home"
     const val RIDES = "rides"
+    const val STORIES = "stories"
     const val RIDERS = "riders"
     const val PROFILE = "profile"
     const val RIDE_DETAIL = "rides/{rideId}"
@@ -47,6 +51,7 @@ object Routes {
     const val RIDE_POSTS = "rides/{rideId}/posts"
     const val RIDE_LIVE = "rides/{rideId}/live"
     const val RIDER_PROFILE = "riders/{riderId}"
+    const val BLOG_DETAIL = "stories/{blogId}"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
     const val GARAGE = "garage"
@@ -57,6 +62,7 @@ object Routes {
     fun ridePosts(id: String) = "rides/$id/posts"
     fun rideLive(id: String) = "rides/$id/live"
     fun riderProfile(id: String) = "riders/$id"
+    fun blogDetail(id: String) = "stories/$id"
 }
 
 private data class Tab(val route: String, val label: String, val icon: ImageVector)
@@ -64,6 +70,7 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 private val tabs = listOf(
     Tab(Routes.HOME, "Home", Icons.Filled.Home),
     Tab(Routes.RIDES, "Rides", Icons.Filled.TwoWheeler),
+    Tab(Routes.STORIES, "Stories", Icons.AutoMirrored.Filled.MenuBook),
     Tab(Routes.RIDERS, "Riders", Icons.Filled.EmojiEvents),
     Tab(Routes.PROFILE, "Profile", Icons.Filled.Person),
 )
@@ -159,6 +166,23 @@ fun MainScreen(factory: AppViewModelFactory) {
                 RegistrationFormScreen(
                     rideId = entry.arguments?.getString("rideId").orEmpty(),
                     rideTitle = entry.arguments?.getString("title").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+
+            composable(Routes.STORIES) {
+                BlogsScreen(
+                    factory = factory,
+                    onBlogClick = { id -> navController.navigate(Routes.blogDetail(id)) },
+                )
+            }
+            composable(
+                route = Routes.BLOG_DETAIL,
+                arguments = listOf(navArgument("blogId") { type = NavType.StringType }),
+            ) { entry ->
+                BlogDetailScreen(
+                    blogId = entry.arguments?.getString("blogId").orEmpty(),
                     factory = factory,
                     onBack = { navController.popBackStack() },
                 )

@@ -9,6 +9,7 @@ import com.taleson2wheels.app.data.location.LocationTracker
 import com.taleson2wheels.app.data.push.NoOpPushTokenProvider
 import com.taleson2wheels.app.data.push.PushTokenProvider
 import com.taleson2wheels.app.data.remote.api.AuthApi
+import com.taleson2wheels.app.data.remote.api.BlogsApi
 import com.taleson2wheels.app.data.remote.api.ContentApi
 import com.taleson2wheels.app.data.remote.api.DevicesApi
 import com.taleson2wheels.app.data.remote.api.GarageApi
@@ -17,6 +18,7 @@ import com.taleson2wheels.app.data.remote.api.RidersApi
 import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.remote.api.UploadApi
 import com.taleson2wheels.app.data.repository.AuthRepository
+import com.taleson2wheels.app.data.repository.BlogsRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
 import com.taleson2wheels.app.data.repository.DevicesRepository
 import com.taleson2wheels.app.data.repository.GarageRepository
@@ -106,6 +108,7 @@ class AppContainer(context: Context) {
     val uploadApi: UploadApi = retrofit.create(UploadApi::class.java)
     val liveApi: LiveApi = retrofit.create(LiveApi::class.java)
     val devicesApi: DevicesApi = retrofit.create(DevicesApi::class.java)
+    val blogsApi: BlogsApi = retrofit.create(BlogsApi::class.java)
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private val deviceId: String = runCatching {
@@ -132,6 +135,7 @@ class AppContainer(context: Context) {
     val uploadRepository = UploadRepository(uploadApi, json)
     val garageRepository = GarageRepository(garageApi, json)
     val liveRepository = LiveRepository(liveApi, json)
+    val blogsRepository = BlogsRepository(blogsApi, json)
 
     /** App-scoped GPS tracker for the live-ride screen (framework LocationManager). */
     val locationTracker = LocationTracker(appContext)
