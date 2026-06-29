@@ -40,6 +40,7 @@ object Routes {
     const val RIDER_PROFILE = "riders/{riderId}"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
+    const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun riderProfile(id: String) = "riders/$id"
 }
@@ -131,6 +132,7 @@ fun MainScreen(factory: AppViewModelFactory) {
                     factory = factory,
                     onOpenGuidelines = { navController.navigate(Routes.GUIDELINES) },
                     onOpenCrew = { navController.navigate(Routes.CREW) },
+                    onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 )
             }
             composable(Routes.GUIDELINES) {
@@ -138,6 +140,12 @@ fun MainScreen(factory: AppViewModelFactory) {
             }
             composable(Routes.CREW) {
                 CrewScreen(factory = factory, onBack = { navController.popBackStack() })
+            }
+            composable(Routes.CHANGE_PASSWORD) {
+                com.taleson2wheels.app.ui.auth.ChangePasswordScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
             }
         }
     }

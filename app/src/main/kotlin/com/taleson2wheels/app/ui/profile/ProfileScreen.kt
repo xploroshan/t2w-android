@@ -41,6 +41,7 @@ fun ProfileScreen(
     factory: AppViewModelFactory,
     onOpenGuidelines: () -> Unit,
     onOpenCrew: () -> Unit,
+    onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(factory = factory),
 ) {
@@ -71,6 +72,7 @@ fun ProfileScreen(
                 user = state.user,
                 onOpenGuidelines = onOpenGuidelines,
                 onOpenCrew = onOpenCrew,
+                onChangePassword = onChangePassword,
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -82,6 +84,7 @@ private fun ProfileBody(
     user: UserDto,
     onOpenGuidelines: () -> Unit,
     onOpenCrew: () -> Unit,
+    onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -120,6 +123,7 @@ private fun ProfileBody(
         item { SectionHeader("More") }
         item { LinkRow("Ride guidelines", onOpenGuidelines) }
         item { LinkRow("Crew", onOpenCrew) }
+        item { LinkRow("Change password", onChangePassword) }
     }
 }
 

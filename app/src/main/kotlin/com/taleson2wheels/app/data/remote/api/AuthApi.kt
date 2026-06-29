@@ -1,12 +1,18 @@
 package com.taleson2wheels.app.data.remote.api
 
 import com.taleson2wheels.app.data.remote.dto.AuthSuccess
+import com.taleson2wheels.app.data.remote.dto.ChangePasswordRequest
+import com.taleson2wheels.app.data.remote.dto.ChangePasswordSuccess
+import com.taleson2wheels.app.data.remote.dto.EmailRequest
 import com.taleson2wheels.app.data.remote.dto.LoginRequest
 import com.taleson2wheels.app.data.remote.dto.LogoutResponse
 import com.taleson2wheels.app.data.remote.dto.MeResponse
 import com.taleson2wheels.app.data.remote.dto.RefreshRequest
 import com.taleson2wheels.app.data.remote.dto.RefreshSuccess
 import com.taleson2wheels.app.data.remote.dto.RegisterRequest
+import com.taleson2wheels.app.data.remote.dto.ResetPasswordRequest
+import com.taleson2wheels.app.data.remote.dto.SimpleResponse
+import com.taleson2wheels.app.data.remote.dto.VerifyOtpRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -29,4 +35,25 @@ interface AuthApi {
 
     @GET("api/v1/auth/me")
     suspend fun me(): MeResponse
+
+    // ── Account verification / recovery ──────────────────────────────────────
+
+    @POST("api/v1/auth/send-otp")
+    suspend fun sendOtp(@Body body: EmailRequest): SimpleResponse
+
+    @POST("api/v1/auth/verify-otp")
+    suspend fun verifyOtp(@Body body: VerifyOtpRequest): SimpleResponse
+
+    @POST("api/v1/auth/send-reset-otp")
+    suspend fun sendResetOtp(@Body body: EmailRequest): SimpleResponse
+
+    @POST("api/v1/auth/verify-reset-otp")
+    suspend fun verifyResetOtp(@Body body: VerifyOtpRequest): SimpleResponse
+
+    @POST("api/v1/auth/reset-password")
+    suspend fun resetPassword(@Body body: ResetPasswordRequest): SimpleResponse
+
+    /** Bearer; returns a fresh token pair the client must persist. */
+    @POST("api/v1/auth/change-password")
+    suspend fun changePassword(@Body body: ChangePasswordRequest): ChangePasswordSuccess
 }

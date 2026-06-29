@@ -37,6 +37,7 @@ class AppContainer(context: Context) {
         ignoreUnknownKeys = true   // tolerate server fields the app doesn't model yet
         explicitNulls = false      // omit nulls when serializing request bodies
         coerceInputValues = true   // fall back to defaults for nulls on non-null fields
+        encodeDefaults = true      // actually send defaulted request fields (e.g. platform="android")
         isLenient = true
     }
 

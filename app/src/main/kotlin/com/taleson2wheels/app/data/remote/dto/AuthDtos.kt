@@ -35,7 +35,42 @@ data class RefreshRequest(
     val platform: String = "android",
 )
 
+@Serializable
+data class EmailRequest(val email: String)
+
+@Serializable
+data class VerifyOtpRequest(val email: String, val code: String)
+
+/** `/auth/reset-password` body — relies on a prior verified reset OTP. */
+@Serializable
+data class ResetPasswordRequest(val email: String, val newPassword: String)
+
+@Serializable
+data class ChangePasswordRequest(
+    val currentPassword: String,
+    val newPassword: String,
+    val deviceId: String? = null,
+    val platform: String = "android",
+)
+
 // ── Responses ──────────────────────────────────────────────────────────────
+
+/** `{ success, verified?, emailSent? }` — shared shape of the OTP/reset routes. */
+@Serializable
+data class SimpleResponse(
+    val success: Boolean = false,
+    val verified: Boolean = false,
+    val emailSent: Boolean = false,
+)
+
+/** `/auth/change-password` → fresh token pair (the tokenVersion bump revoked the old). */
+@Serializable
+data class ChangePasswordSuccess(
+    val success: Boolean = true,
+    val accessToken: String,
+    val refreshToken: String,
+    val refreshTokenExpiresAt: String,
+)
 
 /** `/auth/login` and `/auth/register` → token pair + the signed-in user. */
 @Serializable

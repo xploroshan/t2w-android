@@ -30,6 +30,8 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 @Composable
 fun LoginScreen(
     factory: AppViewModelFactory,
+    onRegister: () -> Unit = {},
+    onForgot: () -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: LoginViewModel = viewModel(factory = factory),
 ) {
@@ -106,5 +108,18 @@ fun LoginScreen(
                 Text(stringResource(R.string.login_button))
             }
         }
+
+        Text(
+            text = "Forgot password?",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 20.dp).clickableText(onForgot),
+        )
+        Text(
+            text = "New rider? Create an account",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(top = 12.dp).clickableText(onRegister),
+        )
     }
 }

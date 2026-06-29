@@ -9,7 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.taleson2wheels.app.di.AppContainer
-import com.taleson2wheels.app.ui.auth.LoginScreen
+import com.taleson2wheels.app.ui.auth.AuthFlow
 import com.taleson2wheels.app.ui.common.LoadingView
 import com.taleson2wheels.app.ui.theme.T2WTheme
 
@@ -32,7 +32,7 @@ fun T2WApp(container: AppContainer) {
         ) {
             when {
                 !ready -> LoadingView()
-                tokens == null -> LoginScreen(factory = factory)
+                tokens == null -> AuthFlow(factory = factory)
                 else -> MainScreen(factory = factory)
             }
         }
