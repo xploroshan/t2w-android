@@ -1,66 +1,36 @@
 package com.taleson2wheels.app.data.remote.api
 
-import com.taleson2wheels.app.data.remote.dto.BadgeDto
-import com.taleson2wheels.app.data.remote.dto.BlogPostDto
-import com.taleson2wheels.app.data.remote.dto.DeviceDto
-import com.taleson2wheels.app.data.remote.dto.DeviceRegistration
-import com.taleson2wheels.app.data.remote.dto.GuidelineDto
+import com.taleson2wheels.app.data.remote.dto.BadgesResponse
+import com.taleson2wheels.app.data.remote.dto.CrewResponse
+import com.taleson2wheels.app.data.remote.dto.GuidelinesResponse
 import com.taleson2wheels.app.data.remote.dto.HealthDto
-import com.taleson2wheels.app.data.remote.dto.ItemList
-import com.taleson2wheels.app.data.remote.dto.NotificationDto
-import com.taleson2wheels.app.data.remote.dto.Page
-import com.taleson2wheels.app.data.remote.dto.RidePostDto
+import com.taleson2wheels.app.data.remote.dto.NotificationsResponse
 import com.taleson2wheels.app.data.remote.dto.StatsDto
-import retrofit2.http.Body
-import retrofit2.http.DELETE
+import kotlinx.serialization.json.JsonObject
 import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
-import retrofit2.http.Query
 
-/** Read-mostly content + push device registration + the health probe. */
+/** Read-only catalog + the health probe. All paths are implemented on `main`. */
 interface ContentApi {
 
-    @GET("health")
+    @GET("api/v1/health")
     suspend fun health(): HealthDto
 
-    @GET("stats")
+    @GET("api/v1/stats")
     suspend fun stats(): StatsDto
 
-    @GET("guidelines")
-    suspend fun guidelines(): ItemList<GuidelineDto>
+    @GET("api/v1/guidelines")
+    suspend fun guidelines(): GuidelinesResponse
 
-    @GET("badges")
-    suspend fun badges(): ItemList<BadgeDto>
+    @GET("api/v1/crew")
+    suspend fun crew(): CrewResponse
 
-    @GET("blogs")
-    suspend fun blogs(
-        @Query("cursor") cursor: String? = null,
-        @Query("limit") limit: Int = 20,
-    ): Page<BlogPostDto>
+    @GET("api/v1/badges")
+    suspend fun badges(): BadgesResponse
 
-    @GET("blogs/{id}")
-    suspend fun blog(@Path("id") id: String): BlogPostDto
+    /** Shape is open-ended (`additionalProperties`); kept as a raw JSON object. */
+    @GET("api/v1/achievements")
+    suspend fun achievements(): JsonObject
 
-    @GET("ride-posts")
-    suspend fun ridePosts(
-        @Query("cursor") cursor: String? = null,
-        @Query("limit") limit: Int = 20,
-        @Query("rideId") rideId: String? = null,
-    ): Page<RidePostDto>
-
-    @GET("notifications")
-    suspend fun notifications(
-        @Query("cursor") cursor: String? = null,
-        @Query("limit") limit: Int = 20,
-    ): Page<NotificationDto>
-
-    @POST("notifications/{id}/read")
-    suspend fun markNotificationRead(@Path("id") id: String)
-
-    @POST("devices")
-    suspend fun registerDevice(@Body body: DeviceRegistration): DeviceDto
-
-    @DELETE("devices/{id}")
-    suspend fun deregisterDevice(@Path("id") id: String)
+    @GET("api/v1/notifications")
+    suspend fun notifications(): NotificationsResponse
 }

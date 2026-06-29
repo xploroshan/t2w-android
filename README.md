@@ -47,22 +47,23 @@ ui (Compose screens)
 
 Key pieces:
 
-- **Base URL** comes from `BuildConfig.API_BASE_URL`.
-  - `debug` → `http://10.0.2.2:3000/api/v1/` (local Next.js as seen from the
-    Android emulator).
-  - `release` → `https://taleson2wheels.com/api/v1/`.
+- **Base URL** comes from `BuildConfig.API_BASE_URL` and is the **host root**;
+  the Retrofit service paths carry the `api/v1/` prefix (matching the OpenAPI
+  `servers`).
+  - `debug` → `http://10.0.2.2:3000/` (local Next.js as seen from the emulator).
+  - `release` → `https://taleson2wheels.com/`.
   - Override either without editing source by creating a git-ignored
     `secrets.properties` at the repo root:
     ```properties
-    T2W_API_BASE_URL_DEBUG=http://192.168.1.20:3000/api/v1/
-    T2W_API_BASE_URL=https://staging.taleson2wheels.com/api/v1/
+    T2W_API_BASE_URL_DEBUG=http://192.168.1.20:3000/
+    T2W_API_BASE_URL=https://staging.taleson2wheels.com/
     ```
 - **Auth model** (mirrors `mobile-apps-plan.md` §6): a short-lived JWT **access
-  token** sent as `Authorization: Bearer …`, plus a rotating **refresh token**.
-  `TokenAuthenticator` transparently refreshes on a `401` and retries the request
-  once; a failed refresh clears the session and the UI falls back to login.
-  The refresh call runs on a **separate, un-intercepted** OkHttp client so it
-  can never recurse.
+  token** sent as `Authorization: Bearer …`, plus a rotating **refresh token**
+  with an explicit `refreshTokenExpiresAt`. `TokenAuthenticator` transparently
+  refreshes on a `401` and retries the request once; a failed refresh clears the
+  session and the UI falls back to login. The refresh call runs on a
+  **separate, un-intercepted** OkHttp client so it can never recurse.
 - **Error envelope**: every non-2xx body is decoded as
   `{ "error": { "code", "message", "details" } }` into the typed
   `ApiError.Http(status, code, serverMessage)`; network failures become
@@ -73,20 +74,28 @@ Key pieces:
 
 ### Spec → code map
 
+The client tracks the **implemented** endpoints on T2W `main`'s
+`docs/openapi-v1.yaml` (the contract backed by `src/app/api/v1/`).
+
 | `openapi-v1.yaml` | Kotlin |
 |---|---|
 | `components.schemas.*` | `data/remote/dto/*.kt` |
-| `ErrorResponse` | `data/remote/ApiError.kt` |
-| Cursor page envelope | `data/remote/dto/Page.kt` |
-| `/auth/...` | `data/remote/api/AuthApi.kt` |
-| `/rides/...`, `/rides/{id}/live/...` | `data/remote/api/RidesApi.kt` |
-| `/riders/...` | `data/remote/api/RidersApi.kt` |
-| `/motorcycles/...` | `data/remote/api/GarageApi.kt` |
-| `/health` `/stats` `/guidelines` `/badges` `/blogs` `/ride-posts` `/notifications` `/devices` | `data/remote/api/ContentApi.kt` |
+| `ErrorEnvelope` | `data/remote/ApiError.kt` |
+| `Page` (cursor) | `data/remote/dto/Page.kt` |
+| `/api/v1/auth/{login,register,refresh,logout,me}` | `data/remote/api/AuthApi.kt` |
+| `/api/v1/rides`, `/api/v1/rides/{id}` | `data/remote/api/RidesApi.kt` |
+| `/api/v1/riders`, `/api/v1/riders/{id}` | `data/remote/api/RidersApi.kt` |
+| `/api/v1/motorcycles` (read) | `data/remote/api/GarageApi.kt` |
+| `/api/v1/{health,stats,guidelines,crew,badges,achievements,notifications}` | `data/remote/api/ContentApi.kt` |
 
 If you prefer code generation, the same spec can drive
 `openapi-generator-cli generate -g kotlin -i ../T2W/docs/openapi-v1.yaml`; the
 hand-written client here is intentionally small and dependency-light.
+
+> **Not yet in the backend contract** (so not in the client): OTP/password
+> reset, ride registration, live GPS tracking, push-device registration, blogs,
+> ride-posts, and motorcycle create/update/delete. These are appended to the
+> spec as they ship server-side, then wired here.
 
 ---
 
@@ -143,8 +152,9 @@ To run against a local backend, start the Next.js app (`npm run dev` in the
 
 Tracks the phases in `T2W/docs/mobile-apps-plan.md`:
 
-- **Done (scaffold):** project + build setup, networking layer wired to
-  `/api/v1`, bearer/refresh auth, login flow, rides list + detail, unit tests.
+- **Done (scaffold):** project + build setup, networking layer wired to the
+  implemented `/api/v1` (DTOs/services aligned to `main`'s `openapi-v1.yaml`),
+  bearer/refresh auth, login flow, rides list + detail, unit tests.
 - **Phase 1 (next):** register/OTP/reset screens, home tabs, ride registration
   form, profile/garage, leaderboard, badges, guidelines, push registration
   (`/devices`), and **background GPS** live tracking via a foreground service

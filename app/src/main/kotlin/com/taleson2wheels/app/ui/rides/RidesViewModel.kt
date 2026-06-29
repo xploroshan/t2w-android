@@ -6,7 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.taleson2wheels.app.data.remote.ApiResult
-import com.taleson2wheels.app.data.remote.dto.RideDto
+import com.taleson2wheels.app.data.remote.dto.RideCard
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.RidesRepository
 import kotlinx.coroutines.launch
@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
 data class RidesUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
-    val rides: List<RideDto> = emptyList(),
+    val rides: List<RideCard> = emptyList(),
     val nextCursor: String? = null,
     val error: String? = null,
 ) {

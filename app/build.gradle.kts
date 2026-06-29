@@ -34,11 +34,12 @@ android {
 
     buildTypes {
         debug {
-            // The Android emulator reaches the host machine's localhost via 10.0.2.2.
+            // Host root — service paths carry the `api/v1/` prefix (matches the
+            // OpenAPI servers). The emulator reaches the host's localhost via 10.0.2.2.
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"${secretOr("T2W_API_BASE_URL_DEBUG", "http://10.0.2.2:3000/api/v1/")}\"",
+                "\"${secretOr("T2W_API_BASE_URL_DEBUG", "http://10.0.2.2:3000/")}\"",
             )
         }
         release {
@@ -51,7 +52,7 @@ android {
             buildConfigField(
                 "String",
                 "API_BASE_URL",
-                "\"${secretOr("T2W_API_BASE_URL", "https://taleson2wheels.com/api/v1/")}\"",
+                "\"${secretOr("T2W_API_BASE_URL", "https://taleson2wheels.com/")}\"",
             )
         }
     }
