@@ -3,7 +3,10 @@ package com.taleson2wheels.app.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.taleson2wheels.app.di.AppContainer
+import com.taleson2wheels.app.ui.auth.ChangePasswordViewModel
+import com.taleson2wheels.app.ui.auth.ForgotPasswordViewModel
 import com.taleson2wheels.app.ui.auth.LoginViewModel
+import com.taleson2wheels.app.ui.auth.RegisterViewModel
 import com.taleson2wheels.app.ui.content.CrewViewModel
 import com.taleson2wheels.app.ui.content.GuidelinesViewModel
 import com.taleson2wheels.app.ui.home.HomeViewModel
@@ -24,6 +27,15 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
     override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
         modelClass.isAssignableFrom(LoginViewModel::class.java) ->
             LoginViewModel(container.authRepository) as T
+
+        modelClass.isAssignableFrom(RegisterViewModel::class.java) ->
+            RegisterViewModel(container.authRepository) as T
+
+        modelClass.isAssignableFrom(ForgotPasswordViewModel::class.java) ->
+            ForgotPasswordViewModel(container.authRepository) as T
+
+        modelClass.isAssignableFrom(ChangePasswordViewModel::class.java) ->
+            ChangePasswordViewModel(container.authRepository) as T
 
         modelClass.isAssignableFrom(HomeViewModel::class.java) ->
             HomeViewModel(container.catalogRepository, container.authRepository) as T
