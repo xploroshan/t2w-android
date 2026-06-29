@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.R
-import com.taleson2wheels.app.data.remote.dto.RideDto
+import com.taleson2wheels.app.data.remote.dto.RideDetail
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
@@ -79,7 +79,7 @@ fun RideDetailScreen(
 }
 
 @Composable
-private fun RideDetailBody(ride: RideDto, modifier: Modifier = Modifier) {
+private fun RideDetailBody(ride: RideDetail, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -87,15 +87,17 @@ private fun RideDetailBody(ride: RideDto, modifier: Modifier = Modifier) {
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        DetailRow("Ride", "#${ride.rideNumber}")
-        DetailRow("Status", ride.status)
-        DetailRow("Type", ride.type)
+        ride.rideNumber?.let { DetailRow("Ride", "#$it") }
+        ride.status?.let { DetailRow("Status", it) }
+        ride.type?.let { DetailRow("Type", it) }
         ride.difficulty?.let { DetailRow("Difficulty", it) }
         DetailRow("Distance", "${ride.distanceKm.toInt()} km")
         ride.startLocation?.let { DetailRow("Start", it) }
         ride.endLocation?.let { DetailRow("End", it) }
         DetailRow("Fee", "₹${ride.fee.toInt()}")
-        DetailRow("Riders", "${ride.registrationCount}/${ride.maxRiders}")
+        val cap = if (ride.maxRiders > 0) "/${ride.maxRiders}" else ""
+        DetailRow("Riders", "${ride.registeredRiders}$cap")
+        ride.currentUserApprovalStatus?.let { DetailRow("Your status", it) }
         if (!ride.description.isNullOrBlank()) {
             Text(
                 text = ride.description,

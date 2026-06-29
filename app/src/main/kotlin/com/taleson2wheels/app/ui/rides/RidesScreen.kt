@@ -29,7 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.R
-import com.taleson2wheels.app.data.remote.dto.RideDto
+import com.taleson2wheels.app.data.remote.dto.RideCard
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
@@ -88,7 +88,7 @@ fun RidesScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 items(state.rides, key = { it.id }) { ride ->
-                    RideCard(ride = ride, onClick = { onRideClick(ride.id) })
+                    RideCardItem(ride = ride, onClick = { onRideClick(ride.id) })
                 }
                 if (state.canLoadMore) {
                     item(key = "load-more") {
@@ -103,7 +103,7 @@ fun RidesScreen(
 }
 
 @Composable
-private fun RideCard(ride: RideDto, onClick: () -> Unit) {
+private fun RideCardItem(ride: RideCard, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
@@ -118,24 +118,32 @@ private fun RideCard(ride: RideDto, onClick: () -> Unit) {
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                Text(
-                    text = ride.status.replaceFirstChar { it.uppercase() },
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.SemiBold,
-                )
+                ride.status?.let { status ->
+                    Text(
+                        text = status.replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
             Text(
-                text = "#${ride.rideNumber} · ${ride.distanceKm.toInt()} km · ${ride.difficulty ?: ""}",
+                text = buildString {
+                    ride.rideNumber?.let { append("#").append(it).append("  ·  ") }
+                    append(ride.distanceKm.toInt()).append(" km")
+                    ride.difficulty?.let { append("  ·  ").append(it) }
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(top = 4.dp),
             )
-            val from = ride.startLocation
-            val to = ride.endLocation
-            if (from != null && to != null) {
+            val registered = ride.registeredRiders
+            if (registered > 0 || ride.myRegistrationStatus != null) {
                 Text(
-                    text = "$from → $to",
+                    text = buildString {
+                        append(registered).append(" riders")
+                        ride.myRegistrationStatus?.let { append("  ·  you: ").append(it) }
+                    },
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 2.dp),

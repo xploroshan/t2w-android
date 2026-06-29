@@ -1,49 +1,32 @@
 package com.taleson2wheels.app.data.remote.api
 
-import com.taleson2wheels.app.data.remote.dto.AuthSession
-import com.taleson2wheels.app.data.remote.dto.EmailRequest
+import com.taleson2wheels.app.data.remote.dto.AuthSuccess
 import com.taleson2wheels.app.data.remote.dto.LoginRequest
+import com.taleson2wheels.app.data.remote.dto.LogoutResponse
 import com.taleson2wheels.app.data.remote.dto.MeResponse
 import com.taleson2wheels.app.data.remote.dto.RefreshRequest
+import com.taleson2wheels.app.data.remote.dto.RefreshSuccess
 import com.taleson2wheels.app.data.remote.dto.RegisterRequest
-import com.taleson2wheels.app.data.remote.dto.ResetPasswordRequest
-import com.taleson2wheels.app.data.remote.dto.TokenPair
-import com.taleson2wheels.app.data.remote.dto.VerifyOtpRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 
-/** `/api/v1/auth/…` — bearer-token auth flows. See docs/openapi-v1.yaml. */
+/** `/api/v1/auth/…` — bearer-token auth flows. See T2W docs/openapi-v1.yaml. */
 interface AuthApi {
 
-    @POST("auth/login")
-    suspend fun login(@Body body: LoginRequest): AuthSession
+    @POST("api/v1/auth/login")
+    suspend fun login(@Body body: LoginRequest): AuthSuccess
 
-    @POST("auth/register")
-    suspend fun register(@Body body: RegisterRequest): AuthSession
+    @POST("api/v1/auth/register")
+    suspend fun register(@Body body: RegisterRequest): AuthSuccess
 
     /** Single-use, rotating. Called only by the token authenticator. */
-    @POST("auth/refresh")
-    suspend fun refresh(@Body body: RefreshRequest): TokenPair
+    @POST("api/v1/auth/refresh")
+    suspend fun refresh(@Body body: RefreshRequest): RefreshSuccess
 
-    @POST("auth/logout")
-    suspend fun logout(@Body body: RefreshRequest)
+    @POST("api/v1/auth/logout")
+    suspend fun logout(@Body body: RefreshRequest): LogoutResponse
 
-    @POST("auth/send-otp")
-    suspend fun sendOtp(@Body body: EmailRequest)
-
-    @POST("auth/verify-otp")
-    suspend fun verifyOtp(@Body body: VerifyOtpRequest)
-
-    @POST("auth/send-reset-otp")
-    suspend fun sendResetOtp(@Body body: EmailRequest)
-
-    @POST("auth/verify-reset-otp")
-    suspend fun verifyResetOtp(@Body body: VerifyOtpRequest)
-
-    @POST("auth/reset-password")
-    suspend fun resetPassword(@Body body: ResetPasswordRequest)
-
-    @GET("auth/me")
+    @GET("api/v1/auth/me")
     suspend fun me(): MeResponse
 }

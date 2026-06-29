@@ -2,126 +2,104 @@ package com.taleson2wheels.app.data.remote.dto
 
 import kotlinx.serialization.Serializable
 
+// ── Garage ───────────────────────────────────────────────────────────────────
+
 @Serializable
 data class MotorcycleDto(
     val id: String,
     val make: String,
     val model: String,
-    val year: Int,
-    val cc: Int,
-    val color: String,
+    val year: Int = 0,
+    val cc: Int = 0,
+    val color: String? = null,
     val nickname: String? = null,
     val imageUrl: String? = null,
 )
 
+/** `GET /motorcycles` → `{ "motorcycles": [...] }`. */
 @Serializable
-data class MotorcycleInput(
-    val make: String,
-    val model: String,
-    val year: Int,
-    val cc: Int,
-    val color: String,
-    val nickname: String? = null,
-    val imageUrl: String? = null,
-)
+data class MotorcyclesResponse(val motorcycles: List<MotorcycleDto> = emptyList())
+
+// ── Badges ───────────────────────────────────────────────────────────────────
 
 @Serializable
 data class BadgeDto(
     val id: String,
-    val tier: String,
+    val tier: String? = null,
     val kind: String? = null,
-    val name: String,
-    val description: String,
+    val name: String? = null,
+    val description: String? = null,
     val minKm: Double = 0.0,
-    val icon: String,
-    val color: String,
-    val earned: Boolean = false,
+    val icon: String? = null,
+    val color: String? = null,
+)
+
+/** A badge a user has earned (`User.earnedBadges`). */
+@Serializable
+data class EarnedBadgeDto(
+    val id: String,
     val earnedDate: String? = null,
+    val badge: BadgeDto? = null,
 )
 
+/** `GET /badges` → `{ "badges": [...] }`. */
 @Serializable
-data class BlogPostDto(
-    val id: String,
-    val title: String,
-    val excerpt: String,
-    val content: String? = null,
-    val authorName: String,
-    val authorAvatar: String? = null,
-    val coverImage: String? = null,
-    val tags: List<String> = emptyList(),
-    val type: String,
-    val isVlog: Boolean = false,
-    val videoUrl: String? = null,
-    val readTime: Int = 0,
-    val likes: Int = 0,
-    val publishDate: String,
-)
+data class BadgesResponse(val badges: List<BadgeDto> = emptyList())
 
-@Serializable
-data class RidePostDto(
-    val id: String,
-    val rideId: String,
-    val authorName: String,
-    val content: String,
-    val images: List<String> = emptyList(),
-    val approvalStatus: String? = null,
-    val createdAt: String? = null,
-)
-
-@Serializable
-data class NotificationDto(
-    val id: String,
-    val title: String,
-    val message: String,
-    val type: String,
-    val date: String,
-    val isRead: Boolean = false,
-)
+// ── Content ──────────────────────────────────────────────────────────────────
 
 @Serializable
 data class GuidelineDto(
     val id: String,
     val title: String,
     val content: String,
-    val category: String,
+    val category: String? = null,
     val icon: String? = null,
 )
+
+/** `GET /guidelines` → `{ "guidelines": [...] }`. */
+@Serializable
+data class GuidelinesResponse(val guidelines: List<GuidelineDto> = emptyList())
+
+@Serializable
+data class CrewMemberDto(
+    val id: String,
+    val name: String,
+    val avatarUrl: String? = null,
+    val role: String? = null,
+)
+
+/** `GET /crew` → `{ "crew": [...] }`. */
+@Serializable
+data class CrewResponse(val crew: List<CrewMemberDto> = emptyList())
+
+@Serializable
+data class NotificationDto(
+    val id: String,
+    val title: String,
+    val message: String,
+    val type: String? = null,
+    val date: String? = null,
+    val isRead: Boolean = false,
+)
+
+/** `GET /notifications` → `{ "notifications": [...] }`. */
+@Serializable
+data class NotificationsResponse(val notifications: List<NotificationDto> = emptyList())
+
+// ── System ───────────────────────────────────────────────────────────────────
 
 @Serializable
 data class StatsDto(
     val activeRiders: Int = 0,
-    val completedRides: Int = 0,
-    val totalKm: Double = 0.0,
-    val countries: Int = 0,
+    val ridesCompleted: Int = 0,
+    val kmsCovered: Long = 0,
+    val countriesRidden: Int = 0,
 )
 
 @Serializable
 data class HealthDto(
     val status: String,
-    val version: String,
-    val time: String? = null,
+    val timestamp: String? = null,
+    val database: String? = null,
 )
-
-// ── Devices (push registration) ──────────────────────────────────────────────
-
-@Serializable
-data class DeviceRegistration(
-    val token: String,
-    val platform: String = "android",
-    val deviceId: String,
-    val appBuild: String? = null,
-)
-
-@Serializable
-data class DeviceDto(
-    val id: String,
-    val platform: String,
-    val deviceId: String,
-    val appBuild: String? = null,
-    val createdAt: String? = null,
-)
-
-// ── Simple list envelopes (non-paginated `{ "items": [...] }`) ────────────────
-
-@Serializable
-data class ItemList<T>(val items: List<T> = emptyList())
