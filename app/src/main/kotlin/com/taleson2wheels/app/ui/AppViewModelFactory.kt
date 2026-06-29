@@ -1,0 +1,30 @@
+package com.taleson2wheels.app.ui
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import com.taleson2wheels.app.di.AppContainer
+import com.taleson2wheels.app.ui.auth.LoginViewModel
+import com.taleson2wheels.app.ui.rides.RideDetailViewModel
+import com.taleson2wheels.app.ui.rides.RidesViewModel
+
+/**
+ * Minimal manual ViewModel factory — maps view-model types to the repositories
+ * held by the [AppContainer]. Replace with Hilt's `@HiltViewModel` if/when the
+ * project adopts Hilt.
+ */
+class AppViewModelFactory(private val container: AppContainer) : ViewModelProvider.Factory {
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: Class<T>): T = when {
+        modelClass.isAssignableFrom(LoginViewModel::class.java) ->
+            LoginViewModel(container.authRepository) as T
+
+        modelClass.isAssignableFrom(RidesViewModel::class.java) ->
+            RidesViewModel(container.ridesRepository, container.authRepository) as T
+
+        modelClass.isAssignableFrom(RideDetailViewModel::class.java) ->
+            RideDetailViewModel(container.ridesRepository) as T
+
+        else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
+    }
+}

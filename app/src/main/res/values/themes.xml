@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Application shell theme. The real look is driven by the Compose
+         T2WTheme; this only styles the window before Compose takes over. -->
+    <style name="Theme.T2W" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/white</item>
+        <item name="android:statusBarColor">@color/t2w_orange_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

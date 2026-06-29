@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">Tales on 2 Wheels</string>
+
+    <!-- Auth -->
+    <string name="login_title">Tales on 2 Wheels</string>
+    <string name="login_subtitle">Sign in to ride with the crew</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <string name="login_button">Sign in</string>
+    <string name="login_signing_in">Signing in…</string>
+
+    <!-- Rides -->
+    <string name="rides_title">Rides</string>
+    <string name="rides_empty">No rides yet. Pull to refresh.</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_logout">Sign out</string>
+</resources>
