@@ -152,9 +152,15 @@ To run against a local backend, start the Next.js app (`npm run dev` in the
 
 Tracks the phases in `T2W/docs/mobile-apps-plan.md`:
 
-- **Done (scaffold):** project + build setup, networking layer wired to the
-  implemented `/api/v1` (DTOs/services aligned to `main`'s `openapi-v1.yaml`),
-  bearer/refresh auth, login flow, rides list + detail, unit tests.
+- **Done:** project + build setup, networking layer wired to the implemented
+  `/api/v1` (DTOs/services aligned to `main`'s `openapi-v1.yaml`), bearer/refresh
+  auth, login flow, and the read-only rider app — bottom-nav shell (Home · Rides ·
+  Riders · Profile), home dashboard (stats + notifications), rides list + detail,
+  leaderboard (period filter + paging) + rider profile, profile (garage + badges),
+  guidelines, crew, Coil avatars, unit tests, and GitHub Actions CI.
+- **Scoped, not built:** background-GPS **live ride tracking** — see
+  [`docs/live-tracking-plan.md`](docs/live-tracking-plan.md) for the backend
+  `/api/v1/rides/{id}/live/*` contract and the Android client design.
 - **Phase 1 (next):** register/OTP/reset screens, home tabs, ride registration
   form, profile/garage, leaderboard, badges, guidelines, push registration
   (`/devices`), and **background GPS** live tracking via a foreground service

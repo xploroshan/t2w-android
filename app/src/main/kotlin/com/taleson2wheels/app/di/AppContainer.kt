@@ -11,6 +11,8 @@ import com.taleson2wheels.app.data.remote.api.GarageApi
 import com.taleson2wheels.app.data.remote.api.RidersApi
 import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.repository.AuthRepository
+import com.taleson2wheels.app.data.repository.CatalogRepository
+import com.taleson2wheels.app.data.repository.RidersRepository
 import com.taleson2wheels.app.data.repository.RidesRepository
 import com.taleson2wheels.app.data.session.SessionStore
 import kotlinx.serialization.json.Json
@@ -98,4 +100,6 @@ class AppContainer(context: Context) {
 
     val authRepository = AuthRepository(authApi, session, json, deviceId)
     val ridesRepository = RidesRepository(ridesApi, json)
+    val ridersRepository = RidersRepository(ridersApi, json)
+    val catalogRepository = CatalogRepository(contentApi, json)
 }

@@ -8,23 +8,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
 import com.taleson2wheels.app.di.AppContainer
 import com.taleson2wheels.app.ui.auth.LoginScreen
 import com.taleson2wheels.app.ui.common.LoadingView
-import com.taleson2wheels.app.ui.rides.RideDetailScreen
-import com.taleson2wheels.app.ui.rides.RidesScreen
 import com.taleson2wheels.app.ui.theme.T2WTheme
-
-private object Routes {
-    const val RIDES = "rides"
-    const val RIDE_DETAIL = "rides/{rideId}"
-    fun rideDetail(id: String) = "rides/$id"
-}
 
 /**
  * Root composable + auth gate. The session lives in [AppContainer.session]; this
@@ -46,32 +33,8 @@ fun T2WApp(container: AppContainer) {
             when {
                 !ready -> LoadingView()
                 tokens == null -> LoginScreen(factory = factory)
-                else -> SignedInNavHost(factory = factory)
+                else -> MainScreen(factory = factory)
             }
-        }
-    }
-}
-
-@Composable
-private fun SignedInNavHost(factory: AppViewModelFactory) {
-    val navController = rememberNavController()
-    NavHost(navController = navController, startDestination = Routes.RIDES) {
-        composable(Routes.RIDES) {
-            RidesScreen(
-                factory = factory,
-                onRideClick = { id -> navController.navigate(Routes.rideDetail(id)) },
-            )
-        }
-        composable(
-            route = Routes.RIDE_DETAIL,
-            arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
-        ) { backStackEntry ->
-            val rideId = backStackEntry.arguments?.getString("rideId").orEmpty()
-            RideDetailScreen(
-                rideId = rideId,
-                factory = factory,
-                onBack = { navController.popBackStack() },
-            )
         }
     }
 }
