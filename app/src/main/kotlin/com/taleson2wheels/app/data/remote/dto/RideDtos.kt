@@ -56,3 +56,38 @@ data class RideDetail(
 /** `/rides/{id}` wraps the ride in `{ "ride": ... }`. */
 @Serializable
 data class RideDetailResponse(val ride: RideDetail)
+
+/** Body for `POST /rides/{id}/register` — all fields optional; server fills defaults. */
+@Serializable
+data class RegisterRideRequest(
+    val riderName: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
+    val address: String? = null,
+    val emergencyContactName: String? = null,
+    val emergencyContactPhone: String? = null,
+    val bloodGroup: String? = null,
+    val foodPreference: String? = null,
+    val vehicleModel: String? = null,
+    val vehicleRegNumber: String? = null,
+    val tshirtSize: String? = null,
+    val accommodationType: String? = null,
+    val upiTransactionId: String? = null,
+    val paymentScreenshot: String? = null,
+    val agreedCancellationTerms: Boolean = false,
+    val agreedIndemnity: Boolean = false,
+)
+
+@Serializable
+data class RideRegistrationDto(
+    val id: String,
+    val rideId: String,
+    val approvalStatus: String,
+    val accommodationType: String? = null,
+    val confirmationCode: String? = null,
+    val registeredAt: String? = null,
+)
+
+/** `/rides/{id}/register` wraps the result in `{ "registration": ... }`. */
+@Serializable
+data class RideRegistrationResponse(val registration: RideRegistrationDto)

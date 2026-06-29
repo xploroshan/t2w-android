@@ -1,5 +1,6 @@
 package com.taleson2wheels.app.ui
 
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -28,6 +29,7 @@ import com.taleson2wheels.app.ui.home.HomeScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
 import com.taleson2wheels.app.ui.riders.RiderProfileScreen
+import com.taleson2wheels.app.ui.rides.RegistrationFormScreen
 import com.taleson2wheels.app.ui.rides.RideDetailScreen
 import com.taleson2wheels.app.ui.rides.RidesScreen
 
@@ -37,11 +39,13 @@ object Routes {
     const val RIDERS = "riders"
     const val PROFILE = "profile"
     const val RIDE_DETAIL = "rides/{rideId}"
+    const val RIDE_REGISTER = "rides/{rideId}/register?title={title}"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
+    fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun riderProfile(id: String) = "riders/$id"
 }
 
@@ -105,6 +109,24 @@ fun MainScreen(factory: AppViewModelFactory) {
             ) { entry ->
                 RideDetailScreen(
                     rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onRegister = { id, title -> navController.navigate(Routes.rideRegister(id, title)) },
+                )
+            }
+            composable(
+                route = Routes.RIDE_REGISTER,
+                arguments = listOf(
+                    navArgument("rideId") { type = NavType.StringType },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
+            ) { entry ->
+                RegistrationFormScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    rideTitle = entry.arguments?.getString("title").orEmpty(),
                     factory = factory,
                     onBack = { navController.popBackStack() },
                 )

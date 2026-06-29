@@ -4,6 +4,25 @@ import kotlinx.serialization.Serializable
 
 // ── Garage ───────────────────────────────────────────────────────────────────
 
+/** `POST /api/v1/upload` → `{ "url": ... }` (Vercel Blob public URL). */
+@Serializable
+data class UploadResponse(val url: String)
+
+@Serializable
+data class MotorcycleInput(
+    val make: String,
+    val model: String,
+    val year: Int = 0,
+    val cc: Int = 0,
+    val color: String? = null,
+    val nickname: String? = null,
+    val imageUrl: String? = null,
+)
+
+/** Garage create/update wrap the bike in `{ "motorcycle": ... }`. */
+@Serializable
+data class MotorcycleResponse(val motorcycle: MotorcycleDto)
+
 @Serializable
 data class MotorcycleDto(
     val id: String,

@@ -3,8 +3,10 @@ package com.taleson2wheels.app.data.repository
 import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.remote.dto.Page
+import com.taleson2wheels.app.data.remote.dto.RegisterRideRequest
 import com.taleson2wheels.app.data.remote.dto.RideCard
 import com.taleson2wheels.app.data.remote.dto.RideDetail
+import com.taleson2wheels.app.data.remote.dto.RideRegistrationDto
 import com.taleson2wheels.app.data.remote.safeApiCall
 import kotlinx.serialization.json.Json
 
@@ -22,4 +24,7 @@ class RidesRepository(
 
     suspend fun ride(id: String): ApiResult<RideDetail> =
         safeApiCall(json) { ridesApi.detail(id).ride }
+
+    suspend fun register(rideId: String, body: RegisterRideRequest): ApiResult<RideRegistrationDto> =
+        safeApiCall(json) { ridesApi.register(rideId, body).registration }
 }

@@ -10,10 +10,12 @@ import com.taleson2wheels.app.data.remote.api.ContentApi
 import com.taleson2wheels.app.data.remote.api.GarageApi
 import com.taleson2wheels.app.data.remote.api.RidersApi
 import com.taleson2wheels.app.data.remote.api.RidesApi
+import com.taleson2wheels.app.data.remote.api.UploadApi
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
 import com.taleson2wheels.app.data.repository.RidersRepository
 import com.taleson2wheels.app.data.repository.RidesRepository
+import com.taleson2wheels.app.data.repository.UploadRepository
 import com.taleson2wheels.app.data.session.SessionStore
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
@@ -93,6 +95,7 @@ class AppContainer(context: Context) {
     val ridersApi: RidersApi = retrofit.create(RidersApi::class.java)
     val garageApi: GarageApi = retrofit.create(GarageApi::class.java)
     val contentApi: ContentApi = retrofit.create(ContentApi::class.java)
+    val uploadApi: UploadApi = retrofit.create(UploadApi::class.java)
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private val deviceId: String = runCatching {
@@ -103,4 +106,5 @@ class AppContainer(context: Context) {
     val ridesRepository = RidesRepository(ridesApi, json)
     val ridersRepository = RidersRepository(ridersApi, json)
     val catalogRepository = CatalogRepository(contentApi, json)
+    val uploadRepository = UploadRepository(uploadApi, json)
 }

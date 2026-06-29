@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -36,6 +37,7 @@ fun RideDetailScreen(
     rideId: String,
     factory: AppViewModelFactory,
     onBack: () -> Unit,
+    onRegister: (rideId: String, rideTitle: String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RideDetailViewModel = viewModel(factory = factory),
 ) {
@@ -72,6 +74,7 @@ fun RideDetailScreen(
             )
             state.ride != null -> RideDetailBody(
                 ride = state.ride,
+                onRegister = { onRegister(state.ride.id, state.ride.title) },
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -79,7 +82,11 @@ fun RideDetailScreen(
 }
 
 @Composable
-private fun RideDetailBody(ride: RideDetail, modifier: Modifier = Modifier) {
+private fun RideDetailBody(
+    ride: RideDetail,
+    onRegister: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -105,6 +112,22 @@ private fun RideDetailBody(ride: RideDetail, modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(top = 12.dp),
             )
+        }
+        if (ride.currentUserRegistered) {
+            Text(
+                text = "You're registered for this ride.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.padding(top = 16.dp),
+            )
+        } else if (ride.status == "upcoming") {
+            Button(
+                onClick = onRegister,
+                modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            ) {
+                Text("Register for this ride")
+            }
         }
     }
 }
