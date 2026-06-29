@@ -16,6 +16,7 @@ import com.taleson2wheels.app.ui.riders.LeaderboardViewModel
 import com.taleson2wheels.app.ui.riders.RiderProfileViewModel
 import com.taleson2wheels.app.ui.rides.RegistrationViewModel
 import com.taleson2wheels.app.ui.rides.RideDetailViewModel
+import com.taleson2wheels.app.ui.rides.RidePostsViewModel
 import com.taleson2wheels.app.ui.rides.RidesViewModel
 
 /**
@@ -50,6 +51,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(RegistrationViewModel::class.java) ->
             RegistrationViewModel(container.ridesRepository, container.uploadRepository) as T
+
+        modelClass.isAssignableFrom(RidePostsViewModel::class.java) ->
+            RidePostsViewModel(container.ridesRepository, container.uploadRepository) as T
 
         modelClass.isAssignableFrom(LeaderboardViewModel::class.java) ->
             LeaderboardViewModel(container.ridersRepository) as T

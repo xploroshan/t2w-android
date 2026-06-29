@@ -14,6 +14,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -38,6 +39,7 @@ fun RideDetailScreen(
     factory: AppViewModelFactory,
     onBack: () -> Unit,
     onRegister: (rideId: String, rideTitle: String) -> Unit,
+    onOpenPosts: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RideDetailViewModel = viewModel(factory = factory),
 ) {
@@ -75,6 +77,7 @@ fun RideDetailScreen(
             state.ride != null -> RideDetailBody(
                 ride = state.ride,
                 onRegister = { onRegister(state.ride.id, state.ride.title) },
+                onOpenPosts = { onOpenPosts(state.ride.id) },
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -85,6 +88,7 @@ fun RideDetailScreen(
 private fun RideDetailBody(
     ride: RideDetail,
     onRegister: () -> Unit,
+    onOpenPosts: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -128,6 +132,12 @@ private fun RideDetailBody(
             ) {
                 Text("Register for this ride")
             }
+        }
+        OutlinedButton(
+            onClick = onOpenPosts,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        ) {
+            Text("Ride tales")
         }
     }
 }
