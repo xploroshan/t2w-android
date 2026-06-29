@@ -25,6 +25,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
+import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
@@ -43,6 +44,7 @@ object Routes {
     const val RIDER_PROFILE = "riders/{riderId}"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
+    const val GARAGE = "garage"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
@@ -154,8 +156,12 @@ fun MainScreen(factory: AppViewModelFactory) {
                     factory = factory,
                     onOpenGuidelines = { navController.navigate(Routes.GUIDELINES) },
                     onOpenCrew = { navController.navigate(Routes.CREW) },
+                    onOpenGarage = { navController.navigate(Routes.GARAGE) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 )
+            }
+            composable(Routes.GARAGE) {
+                GarageScreen(factory = factory, onBack = { navController.popBackStack() })
             }
             composable(Routes.GUIDELINES) {
                 GuidelinesScreen(factory = factory, onBack = { navController.popBackStack() })

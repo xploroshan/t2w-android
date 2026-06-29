@@ -9,6 +9,7 @@ import com.taleson2wheels.app.ui.auth.LoginViewModel
 import com.taleson2wheels.app.ui.auth.RegisterViewModel
 import com.taleson2wheels.app.ui.content.CrewViewModel
 import com.taleson2wheels.app.ui.content.GuidelinesViewModel
+import com.taleson2wheels.app.ui.garage.GarageViewModel
 import com.taleson2wheels.app.ui.home.HomeViewModel
 import com.taleson2wheels.app.ui.profile.ProfileViewModel
 import com.taleson2wheels.app.ui.riders.LeaderboardViewModel
@@ -58,6 +59,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(ProfileViewModel::class.java) ->
             ProfileViewModel(container.authRepository) as T
+
+        modelClass.isAssignableFrom(GarageViewModel::class.java) ->
+            GarageViewModel(container.garageRepository, container.uploadRepository) as T
 
         modelClass.isAssignableFrom(GuidelinesViewModel::class.java) ->
             GuidelinesViewModel(container.catalogRepository) as T

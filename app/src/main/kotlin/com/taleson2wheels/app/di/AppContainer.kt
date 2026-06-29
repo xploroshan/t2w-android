@@ -13,6 +13,7 @@ import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.remote.api.UploadApi
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
+import com.taleson2wheels.app.data.repository.GarageRepository
 import com.taleson2wheels.app.data.repository.RidersRepository
 import com.taleson2wheels.app.data.repository.RidesRepository
 import com.taleson2wheels.app.data.repository.UploadRepository
@@ -107,4 +108,5 @@ class AppContainer(context: Context) {
     val ridersRepository = RidersRepository(ridersApi, json)
     val catalogRepository = CatalogRepository(contentApi, json)
     val uploadRepository = UploadRepository(uploadApi, json)
+    val garageRepository = GarageRepository(garageApi, json)
 }
