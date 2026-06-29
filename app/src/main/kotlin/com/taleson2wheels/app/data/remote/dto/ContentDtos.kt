@@ -106,6 +106,17 @@ data class NotificationDto(
 @Serializable
 data class NotificationsResponse(val notifications: List<NotificationDto> = emptyList())
 
+/**
+ * Body for `PUT /notifications` (mark-as-read). Omit [ids] (null) to mark ALL of
+ * the caller's notifications read; otherwise only the listed ids are updated.
+ */
+@Serializable
+data class MarkReadRequest(val ids: List<String>? = null)
+
+/** `PUT /notifications` → `{ "success": true, "updated": n }`. */
+@Serializable
+data class MarkReadResponse(val success: Boolean = false, val updated: Int = 0)
+
 // ── System ───────────────────────────────────────────────────────────────────
 
 @Serializable
