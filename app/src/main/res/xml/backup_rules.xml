@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Exclude the auth token store from cloud backups so tokens never leave the
+     device via Auto Backup. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/t2w_session.preferences_pb" />
+</full-backup-content>
