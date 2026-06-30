@@ -1,5 +1,6 @@
 package com.taleson2wheels.app.data.remote.api
 
+import com.taleson2wheels.app.data.remote.dto.LiveAnalytics
 import com.taleson2wheels.app.data.remote.dto.LiveBreakRequest
 import com.taleson2wheels.app.data.remote.dto.LiveBreakResponse
 import com.taleson2wheels.app.data.remote.dto.LiveControlRequest
@@ -40,9 +41,9 @@ interface LiveApi {
     @POST("api/v1/rides/{id}/live/break")
     suspend fun breakControl(@Path("id") id: String, @Body body: LiveBreakRequest): LiveBreakResponse
 
-    /** Post-ride analytics — rich open-ended object. */
+    /** Post-ride analytics — leaderboard modelled; other sections tolerated. */
     @GET("api/v1/rides/{id}/live/analytics")
-    suspend fun analytics(@Path("id") id: String): JsonObject
+    suspend fun analytics(@Path("id") id: String): LiveAnalytics
 
     /** Cached per-rider elevation profile — open-ended object. */
     @GET("api/v1/rides/{id}/live/elevation-profile")
