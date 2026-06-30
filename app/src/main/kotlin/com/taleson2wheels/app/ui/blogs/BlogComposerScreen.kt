@@ -31,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +44,8 @@ import coil.compose.SubcomposeAsyncImage
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.auth.AuthErrorText
 import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
+import com.taleson2wheels.app.ui.common.readPickedImage
+import kotlinx.coroutines.launch
 
 /**
  * Full-screen "write a story" composer. On success it shows the moderation note
@@ -58,6 +61,7 @@ fun BlogComposerScreen(
 ) {
     val state = viewModel.uiState
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val full = Modifier.fillMaxWidth()
     val snackbar = remember { SnackbarHostState() }
 
@@ -69,12 +73,9 @@ fun BlogComposerScreen(
     }
 
     val pickCover = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            runCatching {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                if (bytes != null) viewModel.uploadCover(bytes, "cover.${mime.substringAfter('/')}", mime)
-            }
+        if (uri != null) scope.launch {
+            val img = context.readPickedImage(uri) ?: return@launch
+            viewModel.uploadCover(img.bytes, img.fileName("cover"), img.mime)
         }
     }
 

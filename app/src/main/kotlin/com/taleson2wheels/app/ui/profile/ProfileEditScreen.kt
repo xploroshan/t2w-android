@@ -11,6 +11,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -25,6 +26,8 @@ import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.auth.AuthScaffold
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.readPickedImage
+import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileEditScreen(
@@ -34,16 +37,14 @@ fun ProfileEditScreen(
 ) {
     val state = viewModel.uiState
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     LaunchedEffect(state.saved) { if (state.saved) onBack() }
 
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            runCatching {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                if (bytes != null) viewModel.uploadAvatar(bytes, "avatar.${mime.substringAfter('/')}", mime)
-            }
+        if (uri != null) scope.launch {
+            val img = context.readPickedImage(uri) ?: return@launch
+            viewModel.uploadAvatar(img.bytes, img.fileName("avatar"), img.mime)
         }
     }
 
