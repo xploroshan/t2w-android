@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.home
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -15,6 +17,7 @@ import com.taleson2wheels.app.data.repository.RidesRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
+@Immutable
 data class HomeUiState(
     val isLoading: Boolean = true,
     val userName: String? = null,

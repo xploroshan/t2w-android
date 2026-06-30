@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.blogs
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +13,7 @@ import com.taleson2wheels.app.data.repository.BlogsRepository
 import com.taleson2wheels.app.data.repository.UploadRepository
 import kotlinx.coroutines.launch
 
+@Immutable
 data class BlogComposerUiState(
     val title: String = "",
     val excerpt: String = "",

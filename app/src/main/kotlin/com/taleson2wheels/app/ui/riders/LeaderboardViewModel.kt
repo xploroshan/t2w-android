@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.riders
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,6 +21,7 @@ enum class LeaderboardPeriod(val apiValue: String, val label: String) {
     ALL("all", "All time"),
 }
 
+@Immutable
 data class LeaderboardUiState(
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,

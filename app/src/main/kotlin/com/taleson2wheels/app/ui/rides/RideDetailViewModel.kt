@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.rides
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -10,6 +12,7 @@ import com.taleson2wheels.app.data.remote.dto.RideDetail
 import com.taleson2wheels.app.data.repository.RidesRepository
 import kotlinx.coroutines.launch
 
+@Immutable
 data class RideDetailUiState(
     val isLoading: Boolean = true,
     val ride: RideDetail? = null,

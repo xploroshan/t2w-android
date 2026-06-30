@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.auth
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -9,6 +11,7 @@ import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.repository.AuthRepository
 import kotlinx.coroutines.launch
 
+@Immutable
 data class ChangePasswordUiState(
     val currentPassword: String = "",
     val newPassword: String = "",

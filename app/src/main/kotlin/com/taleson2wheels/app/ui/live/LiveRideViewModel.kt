@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.live
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +16,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+@Immutable
 data class LiveUiState(
     val isLoading: Boolean = true,
     val liveState: LiveState? = null,
