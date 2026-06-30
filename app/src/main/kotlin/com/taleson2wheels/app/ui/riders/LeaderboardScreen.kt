@@ -10,10 +10,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.MilitaryTech
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -23,6 +30,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.data.remote.dto.RiderDto
@@ -36,6 +44,7 @@ import com.taleson2wheels.app.ui.common.LoadingView
 fun LeaderboardScreen(
     factory: AppViewModelFactory,
     onRiderClick: (String) -> Unit,
+    onOpenAchievements: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LeaderboardViewModel = viewModel(factory = factory),
 ) {
@@ -45,16 +54,39 @@ fun LeaderboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Leaderboard") },
+                actions = {
+                    IconButton(onClick = onOpenAchievements) {
+                        Icon(Icons.Filled.MilitaryTech, contentDescription = "Achievements")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
         },
     ) { innerPadding ->
         Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-            Row(
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = viewModel::onQueryChange,
+                label = { Text("Search riders") },
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (state.query.isNotEmpty()) {
+                        IconButton(onClick = viewModel::clearQuery) {
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear")
+                        }
+                    }
+                },
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = ImeAction.Search),
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 LeaderboardPeriod.entries.forEach { period ->
@@ -70,6 +102,11 @@ fun LeaderboardScreen(
                 state.isLoading && state.riders.isEmpty() -> LoadingView()
                 state.error != null && state.riders.isEmpty() ->
                     ErrorView(state.error, viewModel::refresh)
+                state.riders.isEmpty() ->
+                    ErrorView(
+                        if (state.query.isNotBlank()) "No riders match \"${state.query}\"." else "No riders yet.",
+                        viewModel::refresh,
+                    )
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),

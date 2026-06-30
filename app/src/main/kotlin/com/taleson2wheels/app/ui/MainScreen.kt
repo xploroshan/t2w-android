@@ -1,5 +1,6 @@
 package com.taleson2wheels.app.ui
 
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
@@ -22,13 +23,18 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.taleson2wheels.app.ui.achievements.AchievementsScreen
 import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
+import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
+import com.taleson2wheels.app.ui.live.LiveRideScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
 import com.taleson2wheels.app.ui.riders.RiderProfileScreen
+import com.taleson2wheels.app.ui.rides.RegistrationFormScreen
 import com.taleson2wheels.app.ui.rides.RideDetailScreen
+import com.taleson2wheels.app.ui.rides.RidePostsScreen
 import com.taleson2wheels.app.ui.rides.RidesScreen
 
 object Routes {
@@ -37,11 +43,19 @@ object Routes {
     const val RIDERS = "riders"
     const val PROFILE = "profile"
     const val RIDE_DETAIL = "rides/{rideId}"
+    const val RIDE_REGISTER = "rides/{rideId}/register?title={title}"
+    const val RIDE_POSTS = "rides/{rideId}/posts"
+    const val RIDE_LIVE = "rides/{rideId}/live"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
+    const val GARAGE = "garage"
+    const val ACHIEVEMENTS = "achievements"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
+    fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
+    fun ridePosts(id: String) = "rides/$id/posts"
+    fun rideLive(id: String) = "rides/$id/live"
     fun riderProfile(id: String) = "riders/$id"
 }
 
@@ -107,6 +121,46 @@ fun MainScreen(factory: AppViewModelFactory) {
                     rideId = entry.arguments?.getString("rideId").orEmpty(),
                     factory = factory,
                     onBack = { navController.popBackStack() },
+                    onRegister = { id, title -> navController.navigate(Routes.rideRegister(id, title)) },
+                    onOpenPosts = { id -> navController.navigate(Routes.ridePosts(id)) },
+                    onOpenLive = { id -> navController.navigate(Routes.rideLive(id)) },
+                )
+            }
+            composable(
+                route = Routes.RIDE_LIVE,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                LiveRideScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.RIDE_POSTS,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                RidePostsScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.RIDE_REGISTER,
+                arguments = listOf(
+                    navArgument("rideId") { type = NavType.StringType },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
+            ) { entry ->
+                RegistrationFormScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    rideTitle = entry.arguments?.getString("title").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
 
@@ -114,7 +168,11 @@ fun MainScreen(factory: AppViewModelFactory) {
                 LeaderboardScreen(
                     factory = factory,
                     onRiderClick = { id -> navController.navigate(Routes.riderProfile(id)) },
+                    onOpenAchievements = { navController.navigate(Routes.ACHIEVEMENTS) },
                 )
+            }
+            composable(Routes.ACHIEVEMENTS) {
+                AchievementsScreen(factory = factory, onBack = { navController.popBackStack() })
             }
             composable(
                 route = Routes.RIDER_PROFILE,
@@ -132,8 +190,12 @@ fun MainScreen(factory: AppViewModelFactory) {
                     factory = factory,
                     onOpenGuidelines = { navController.navigate(Routes.GUIDELINES) },
                     onOpenCrew = { navController.navigate(Routes.CREW) },
+                    onOpenGarage = { navController.navigate(Routes.GARAGE) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 )
+            }
+            composable(Routes.GARAGE) {
+                GarageScreen(factory = factory, onBack = { navController.popBackStack() })
             }
             composable(Routes.GUIDELINES) {
                 GuidelinesScreen(factory = factory, onBack = { navController.popBackStack() })

@@ -41,6 +41,7 @@ fun ProfileScreen(
     factory: AppViewModelFactory,
     onOpenGuidelines: () -> Unit,
     onOpenCrew: () -> Unit,
+    onOpenGarage: () -> Unit,
     onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(factory = factory),
@@ -72,6 +73,7 @@ fun ProfileScreen(
                 user = state.user,
                 onOpenGuidelines = onOpenGuidelines,
                 onOpenCrew = onOpenCrew,
+                onOpenGarage = onOpenGarage,
                 onChangePassword = onChangePassword,
                 modifier = Modifier.padding(innerPadding),
             )
@@ -84,6 +86,7 @@ private fun ProfileBody(
     user: UserDto,
     onOpenGuidelines: () -> Unit,
     onOpenCrew: () -> Unit,
+    onOpenGarage: () -> Unit,
     onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -110,10 +113,9 @@ private fun ProfileBody(
             }
         }
 
-        if (user.motorcycles.isNotEmpty()) {
-            item { SectionHeader("Garage") }
-            items(user.motorcycles, key = { it.id }) { MotorcycleCard(it) }
-        }
+        item { SectionHeader("Garage") }
+        items(user.motorcycles, key = { it.id }) { MotorcycleCard(it) }
+        item { LinkRow("Manage garage", onOpenGarage) }
 
         if (user.earnedBadges.isNotEmpty()) {
             item { SectionHeader("Badges") }

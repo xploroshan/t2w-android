@@ -2,6 +2,7 @@ package com.taleson2wheels.app.data.repository
 
 import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.api.ContentApi
+import com.taleson2wheels.app.data.remote.dto.AchievementsResponse
 import com.taleson2wheels.app.data.remote.dto.BadgeDto
 import com.taleson2wheels.app.data.remote.dto.CrewMemberDto
 import com.taleson2wheels.app.data.remote.dto.GuidelineDto
@@ -29,4 +30,7 @@ class CatalogRepository(
 
     suspend fun notifications(): ApiResult<List<NotificationDto>> =
         safeApiCall(json) { contentApi.notifications().notifications }
+
+    suspend fun achievements(): ApiResult<AchievementsResponse> =
+        safeApiCall(json) { contentApi.achievements() }
 }

@@ -17,6 +17,15 @@ val secrets = Properties().apply {
 fun secretOr(key: String, default: String): String =
     (secrets.getProperty(key) ?: providers.gradleProperty(key).orNull ?: default)
 
+// Release signing — driven by a git-ignored `keystore.properties` (storeFile,
+// storePassword, keyAlias, keyPassword). Absent (e.g. CI without secrets) → the
+// release build falls back to debug signing so it still assembles.
+val keystoreProps = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+val hasReleaseSigning = keystoreProps.getProperty("storeFile") != null
+
 android {
     namespace = "com.taleson2wheels.app"
     compileSdk = 35
@@ -32,6 +41,17 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Host root — service paths carry the `api/v1/` prefix (matches the
@@ -43,6 +63,13 @@ android {
             )
         }
         release {
+            // Real release keystore when configured; otherwise debug-signed so CI
+            // and unsigned local release builds still assemble.
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
