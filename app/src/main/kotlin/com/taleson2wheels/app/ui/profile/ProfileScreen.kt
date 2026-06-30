@@ -151,7 +151,7 @@ private fun SectionHeader(text: String) {
 }
 
 @Composable
-private fun MotorcycleCard(bike: MotorcycleDto) {
+internal fun MotorcycleCard(bike: MotorcycleDto) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(

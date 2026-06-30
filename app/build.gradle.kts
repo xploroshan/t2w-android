@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.paparazzi)
 }
 
 // Base URL for the T2W API. This is the HOST ROOT — the Retrofit service paths
@@ -122,6 +123,19 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
+    }
+}
+
+// Paparazzi screenshot tests live in src/test but must NOT run during the normal
+// unit-test task: their goldens are pixel-exact and OS/JVM-specific, which would
+// make `testDebugUnitTest` fail on a dev's Mac or any host that doesn't match the
+// (Linux) machine the goldens were recorded on. They run ONLY via the dedicated
+// record/verifyPaparazziDebug tasks. Regenerate the gallery with:
+//   ./gradlew :app:recordPaparazziDebug
+val isPaparazziRun = gradle.startParameter.taskNames.any { it.contains("Paparazzi", ignoreCase = true) }
+tasks.withType<Test>().configureEach {
+    if (!isPaparazziRun) {
+        exclude("**/paparazzi/**")
     }
 }
 

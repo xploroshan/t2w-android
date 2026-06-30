@@ -99,7 +99,7 @@ fun BlogsScreen(
 }
 
 @Composable
-private fun BlogCardItem(blog: BlogCard, onClick: () -> Unit) {
+internal fun BlogCardItem(blog: BlogCard, onClick: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Column {
             if (!blog.coverImage.isNullOrBlank()) {
