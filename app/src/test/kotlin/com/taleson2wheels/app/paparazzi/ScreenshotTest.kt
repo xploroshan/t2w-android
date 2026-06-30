@@ -31,6 +31,7 @@ import com.taleson2wheels.app.ui.auth.AuthErrorText
 import com.taleson2wheels.app.ui.auth.AuthField
 import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.blogs.BlogCardItem
+import com.taleson2wheels.app.ui.components.BrandWordmark
 import com.taleson2wheels.app.ui.components.SectionHeader
 import com.taleson2wheels.app.ui.home.Hero
 import com.taleson2wheels.app.ui.home.NotificationCard
@@ -89,16 +90,11 @@ class ScreenshotTest {
             modifier = Modifier.fillMaxSize().padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Text(
-                "Tales on 2 Wheels",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-            )
+            BrandWordmark(style = MaterialTheme.typography.displaySmall)
             Text(
                 "Sign in to ride with the crew",
                 style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             AuthField(value = "rider@taleson2wheels.com", onValueChange = {}, label = "Email", modifier = Modifier.fillMaxWidth())
             AuthField(value = "••••••••••", onValueChange = {}, label = "Password", isPassword = true, modifier = Modifier.fillMaxWidth())

@@ -4,15 +4,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,12 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.R
 import com.taleson2wheels.app.ui.AppViewModelFactory
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandWordmark
 
 @Composable
 fun LoginScreen(
@@ -36,90 +31,72 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(factory = factory),
 ) {
     val state = viewModel.uiState
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .imePadding()
-            .padding(horizontal = 24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-    ) {
-        Text(
-            text = stringResource(R.string.login_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.primary,
-        )
-        Text(
-            text = stringResource(R.string.login_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
-        )
+    BrandBackground(modifier) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .imePadding()
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            // Brand wordmark as the hero moment, matching the website's dark login.
+            BrandWordmark(style = MaterialTheme.typography.displaySmall)
+            Text(
+                text = stringResource(R.string.login_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 32.dp),
+            )
 
-        OutlinedTextField(
-            value = state.email,
-            onValueChange = viewModel::onEmailChange,
-            label = { Text(stringResource(R.string.login_email)) },
-            singleLine = true,
-            enabled = !state.isSubmitting,
-            keyboardOptions = KeyboardOptions(
+            AuthField(
+                value = state.email,
+                onValueChange = viewModel::onEmailChange,
+                label = stringResource(R.string.login_email),
+                enabled = !state.isSubmitting,
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        OutlinedTextField(
-            value = state.password,
-            onValueChange = viewModel::onPasswordChange,
-            label = { Text(stringResource(R.string.login_password)) },
-            singleLine = true,
-            enabled = !state.isSubmitting,
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(
+                modifier = Modifier.fillMaxWidth(),
+            )
+            AuthField(
+                value = state.password,
+                onValueChange = viewModel::onPasswordChange,
+                label = stringResource(R.string.login_password),
+                enabled = !state.isSubmitting,
+                isPassword = true,
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done,
-            ),
-            keyboardActions = KeyboardActions(onDone = { viewModel.submit() }),
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-        )
+                onImeAction = viewModel::submit,
+                modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            )
 
-        if (state.error != null) {
-            Text(
-                text = state.error,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
+            AuthErrorText(
+                message = state.error,
                 modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             )
-        }
 
-        Button(
-            onClick = viewModel::submit,
-            enabled = state.canSubmit,
-            modifier = Modifier.fillMaxWidth().padding(top = 24.dp).height(52.dp),
-        ) {
-            if (state.isSubmitting) {
-                CircularProgressIndicator(
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.height(22.dp),
-                    strokeWidth = 2.dp,
-                )
-            } else {
-                Text(stringResource(R.string.login_button))
-            }
-        }
+            AuthPrimaryButton(
+                text = stringResource(R.string.login_button),
+                enabled = state.canSubmit,
+                loading = state.isSubmitting,
+                onClick = viewModel::submit,
+                modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+            )
 
-        Text(
-            text = "Forgot password?",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 20.dp).clickableText(onForgot),
-        )
-        Text(
-            text = "New rider? Create an account",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(top = 12.dp).clickableText(onRegister),
-        )
+            Text(
+                text = "Forgot password?",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 20.dp).clickableText(onForgot),
+            )
+            Text(
+                text = "New rider? Create an account",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = 12.dp).clickableText(onRegister),
+            )
+        }
     }
 }
