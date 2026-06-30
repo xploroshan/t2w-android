@@ -36,8 +36,13 @@ jobs:
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
+      # Artifact uploads are convenience outputs, not correctness gates — the
+      # unit-test + assemble steps above are the real gate. GitHub's blob storage
+      # occasionally drops the upload with ECONNRESET on FinalizeArtifact, which
+      # must NOT red an otherwise-green build, so these steps are non-fatal.
       - name: Upload debug APK
         if: success()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
@@ -46,6 +51,7 @@ jobs:
 
       - name: Upload test report on failure
         if: failure()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-report
