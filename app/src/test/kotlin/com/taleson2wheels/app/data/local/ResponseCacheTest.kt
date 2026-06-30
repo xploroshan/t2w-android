@@ -104,4 +104,23 @@ class ResponseCacheTest {
         assertTrue(store.map.isEmpty())
         assertNull(cache.readOrNull("rides:first", serializer))
     }
+
+    @Test
+    fun `clear swallows a store failure so sign-out can't break`() = runTest {
+        cache(ThrowingClearStore()).clear() // must not throw
+    }
+
+    @Test(expected = IllegalStateException::class)
+    fun `clearStrict rethrows a store failure so login can fail closed`() = runTest {
+        cache(ThrowingClearStore()).clearStrict()
+    }
+
+    /** A store whose clear() always fails — exercises the clear vs. clearStrict
+     *  failure-handling contract at the auth boundary. */
+    private class ThrowingClearStore : CacheStore {
+        override suspend fun read(key: String): String? = null
+        override suspend fun write(key: String, json: String) {}
+        override suspend fun delete(key: String) {}
+        override suspend fun clear(): Unit = throw IllegalStateException("disk full")
+    }
 }

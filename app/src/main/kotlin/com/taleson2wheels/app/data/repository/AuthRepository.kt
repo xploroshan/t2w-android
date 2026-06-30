@@ -45,13 +45,15 @@ class AuthRepository(
             val res = authApi.login(
                 LoginRequest(email = email.trim().lowercase(), password = password, deviceId = deviceId),
             )
+            // Drop any prior account's cached, viewer-specific data BEFORE this
+            // user's bearer token goes live (session.save) — and fail the sign-in
+            // if it can't be cleared, rather than letting the new session read the
+            // previous account's cached rows on a shared device.
+            responseCache?.clearStrict()
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }
         if (result is ApiResult.Success) {
-            // Drop any prior account's cached, viewer-specific data before this
-            // user's screens repopulate it.
-            responseCache?.clear()
             syncPushDevice()
         }
         return result
@@ -77,11 +79,14 @@ class AuthRepository(
                     deviceId = deviceId,
                 ),
             )
+            // Clear any prior account's cached data before this session goes live
+            // (see login()); a failed clear fails the registration rather than
+            // leaking the previous user's cached rows.
+            responseCache?.clearStrict()
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }
         if (result is ApiResult.Success) {
-            responseCache?.clear()
             syncPushDevice()
         }
         return result
