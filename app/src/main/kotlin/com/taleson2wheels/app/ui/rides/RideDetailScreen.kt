@@ -41,6 +41,7 @@ fun RideDetailScreen(
     onRegister: (rideId: String, rideTitle: String) -> Unit,
     onOpenPosts: (String) -> Unit,
     onOpenLive: (String) -> Unit,
+    onOpenInsights: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RideDetailViewModel = viewModel(factory = factory),
 ) {
@@ -80,6 +81,7 @@ fun RideDetailScreen(
                 onRegister = { onRegister(state.ride.id, state.ride.title) },
                 onOpenPosts = { onOpenPosts(state.ride.id) },
                 onOpenLive = { onOpenLive(state.ride.id) },
+                onOpenInsights = { onOpenInsights(state.ride.id) },
                 modifier = Modifier.padding(innerPadding),
             )
         }
@@ -92,6 +94,7 @@ private fun RideDetailBody(
     onRegister: () -> Unit,
     onOpenPosts: () -> Unit,
     onOpenLive: () -> Unit,
+    onOpenInsights: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -156,6 +159,14 @@ private fun RideDetailBody(
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
         ) {
             Text("Ride tales")
+        }
+        if (ride.status != "upcoming") {
+            OutlinedButton(
+                onClick = onOpenInsights,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            ) {
+                Text("Ride insights")
+            }
         }
     }
 }

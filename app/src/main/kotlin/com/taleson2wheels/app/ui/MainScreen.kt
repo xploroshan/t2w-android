@@ -32,6 +32,7 @@ import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
 import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
+import com.taleson2wheels.app.ui.live.LiveInsightsScreen
 import com.taleson2wheels.app.ui.live.LiveRideScreen
 import com.taleson2wheels.app.ui.notifications.NotificationsScreen
 import com.taleson2wheels.app.ui.profile.ProfileEditScreen
@@ -53,6 +54,7 @@ object Routes {
     const val RIDE_REGISTER = "rides/{rideId}/register?title={title}"
     const val RIDE_POSTS = "rides/{rideId}/posts"
     const val RIDE_LIVE = "rides/{rideId}/live"
+    const val RIDE_INSIGHTS = "rides/{rideId}/insights"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val BLOG_DETAIL = "stories/{blogId}"
     const val BLOG_COMPOSE = "stories/compose"
@@ -67,6 +69,7 @@ object Routes {
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
     fun rideLive(id: String) = "rides/$id/live"
+    fun rideInsights(id: String) = "rides/$id/insights"
     fun riderProfile(id: String) = "riders/$id"
     fun blogDetail(id: String) = "stories/$id"
 }
@@ -145,6 +148,17 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onRegister = { id, title -> navController.navigate(Routes.rideRegister(id, title)) },
                     onOpenPosts = { id -> navController.navigate(Routes.ridePosts(id)) },
                     onOpenLive = { id -> navController.navigate(Routes.rideLive(id)) },
+                    onOpenInsights = { id -> navController.navigate(Routes.rideInsights(id)) },
+                )
+            }
+            composable(
+                route = Routes.RIDE_INSIGHTS,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                LiveInsightsScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
