@@ -7,9 +7,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.dto.NotificationDto
+import com.taleson2wheels.app.data.remote.dto.RideCard
 import com.taleson2wheels.app.data.remote.dto.StatsDto
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
+import com.taleson2wheels.app.data.repository.RidesRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
@@ -17,14 +19,16 @@ data class HomeUiState(
     val isLoading: Boolean = true,
     val userName: String? = null,
     val stats: StatsDto? = null,
+    val upcomingRides: List<RideCard> = emptyList(),
     val notifications: List<NotificationDto> = emptyList(),
     val error: String? = null,
 )
 
-/** Loads the home dashboard: greeting (`/auth/me`), `/stats`, and `/notifications`. */
+/** Loads the home landing: greeting (`/auth/me`), `/stats`, upcoming `/rides`, and `/notifications`. */
 class HomeViewModel(
     private val catalogRepository: CatalogRepository,
     private val authRepository: AuthRepository,
+    private val ridesRepository: RidesRepository,
 ) : ViewModel() {
 
     var uiState by mutableStateOf(HomeUiState())
@@ -41,18 +45,22 @@ class HomeViewModel(
             val meDeferred = async { authRepository.currentUser() }
             val statsDeferred = async { catalogRepository.stats() }
             val notifsDeferred = async { catalogRepository.notifications() }
+            val ridesDeferred = async { ridesRepository.rides(limit = 5, status = "upcoming") }
 
             val meResult = meDeferred.await()
             val statsResult = statsDeferred.await()
             val notifsResult = notifsDeferred.await()
+            val ridesResult = ridesDeferred.await()
             val name = (meResult as? ApiResult.Success)?.data?.name
             val stats = (statsResult as? ApiResult.Success)?.data
             val notifs = (notifsResult as? ApiResult.Success)?.data.orEmpty()
+            val upcoming = (ridesResult as? ApiResult.Success)?.data?.items.orEmpty()
 
             uiState = HomeUiState(
                 isLoading = false,
                 userName = name,
                 stats = stats,
+                upcomingRides = upcoming,
                 notifications = notifs.take(5),
                 // Surface an error only when the dashboard has nothing to show
                 // (no user, no stats, no notifications) AND at least one call

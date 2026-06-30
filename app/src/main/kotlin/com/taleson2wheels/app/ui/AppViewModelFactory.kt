@@ -49,7 +49,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             ChangePasswordViewModel(container.authRepository) as T
 
         modelClass.isAssignableFrom(HomeViewModel::class.java) ->
-            HomeViewModel(container.catalogRepository, container.authRepository) as T
+            HomeViewModel(container.catalogRepository, container.authRepository, container.ridesRepository) as T
 
         modelClass.isAssignableFrom(RidesViewModel::class.java) ->
             RidesViewModel(container.ridesRepository, container.authRepository) as T
