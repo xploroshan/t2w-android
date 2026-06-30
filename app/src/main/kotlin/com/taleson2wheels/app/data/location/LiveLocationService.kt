@@ -41,7 +41,7 @@ class LiveLocationService : Service() {
     private val tracker by lazy { LocationTracker(this) }
     private val repository: LiveRepository by lazy { (application as T2WApplication).container.liveRepository }
 
-    private val buffer = ArrayDeque<LocationPoint>()
+    private val buffer = LocationBuffer()
     private var flushJob: Job? = null
     private var rideId: String? = null
 
@@ -65,7 +65,7 @@ class LiveLocationService : Service() {
         // Switching to a different ride while already running: drop the previous
         // ride's buffered fixes so they aren't uploaded to the new ride's id.
         if (rideId != null && rideId != id) {
-            synchronized(this) { buffer.clear() }
+            buffer.clear()
         }
         rideId = id
 
@@ -77,6 +77,10 @@ class LiveLocationService : Service() {
             return START_NOT_STICKY
         }
         LiveShareController.onStart(id)
+        // Re-upload any tail persisted by a previous (torn-down) session — on this
+        // live FGS's scope, so it's far more reliable than the old onDestroy
+        // fire-and-forget, and to its ORIGINAL ride id.
+        recoverPendingFixes()
 
         if (flushJob == null) {
             tracker.start { loc -> enqueue(loc) }
@@ -117,9 +121,8 @@ class LiveLocationService : Service() {
         false
     }
 
-    @Synchronized
     private fun enqueue(loc: Location) {
-        buffer.addLast(
+        buffer.add(
             LocationPoint(
                 lat = loc.latitude,
                 lng = loc.longitude,
@@ -131,38 +134,76 @@ class LiveLocationService : Service() {
         )
     }
 
-    @Synchronized
-    private fun drain(): List<LocationPoint> {
-        if (buffer.isEmpty()) return emptyList()
-        val copy = buffer.toList()
-        buffer.clear()
-        return copy
-    }
-
     private suspend fun flush(id: String) {
-        val points = drain()
+        val points = buffer.nextBatch()
         if (points.isEmpty()) return
         when (val r = repository.uploadLocations(id, points)) {
             is ApiResult.Success -> LiveShareController.onUploaded(r.data.accepted)
-            // Re-queue on a transient failure so fixes aren't lost.
-            is ApiResult.Failure -> synchronized(this) { points.asReversed().forEach { buffer.addFirst(it) } }
+            // Re-queue on a transient failure so fixes aren't lost (bounded — a
+            // sustained failure drops the oldest rather than growing forever).
+            is ApiResult.Failure -> buffer.requeue(points)
         }
     }
 
     override fun onDestroy() {
         tracker.stop()
         flushJob?.cancel()
-        // Best-effort final flush of whatever is buffered before we go away.
+        // Persist whatever is still buffered so the tail survives process death and
+        // a failed final upload; the next live-ride start re-uploads it (see
+        // recoverPendingFixes). Replaces the old onDestroy fire-and-forget upload,
+        // which silently dropped the tail on any failure or early process kill.
         rideId?.let { id ->
-            val remaining = drain()
-            if (remaining.isNotEmpty()) {
-                CoroutineScope(SupervisorJob()).launch { repository.uploadLocations(id, remaining) }
-            }
+            val remaining = buffer.drainAll()
+            if (remaining.isNotEmpty()) persistPending(PendingFixes(id, remaining))
         }
         scope.cancel()
         LiveShareController.onStop()
         super.onDestroy()
     }
+
+    // ── Crash-durable tail (persisted across process death) ──────────────────
+
+    /** Upload a tail persisted by a previous session, then delete it on success;
+     *  on failure leave the file so the next start retries. Best-effort. */
+    private fun recoverPendingFixes() {
+        val pending = readPending() ?: return
+        if (pending.points.isEmpty()) {
+            deletePending()
+            return
+        }
+        scope.launch {
+            when (repository.uploadLocations(pending.rideId, pending.points)) {
+                is ApiResult.Success -> deletePending()
+                is ApiResult.Failure -> Unit // keep the file; retry on the next start
+            }
+        }
+    }
+
+    private fun persistPending(pending: PendingFixes) {
+        runCatching {
+            // Merge with an unrecovered tail for the same ride, keeping the most
+            // recent MAX_RETAINED so the file can't grow without bound either.
+            val merged = readPending()
+                ?.takeIf { it.rideId == pending.rideId }
+                ?.let { (it.points + pending.points).takeLast(LocationBuffer.MAX_RETAINED) }
+                ?: pending.points
+            val json = (application as T2WApplication).container.json
+            pendingFile().writeText(json.encodeToString(PendingFixes.serializer(), PendingFixes(pending.rideId, merged)))
+        }
+    }
+
+    private fun readPending(): PendingFixes? = runCatching {
+        val f = pendingFile()
+        if (!f.exists()) return null
+        val json = (application as T2WApplication).container.json
+        json.decodeFromString(PendingFixes.serializer(), f.readText())
+    }.getOrNull()
+
+    private fun deletePending() {
+        runCatching { pendingFile().delete() }
+    }
+
+    private fun pendingFile() = java.io.File(filesDir, PENDING_FILE)
 
     override fun onBind(intent: Intent?) = null
 
@@ -206,6 +247,7 @@ class LiveLocationService : Service() {
         private const val EXTRA_RIDE_ID = "ride_id"
         private const val ACTION_STOP = "com.taleson2wheels.app.STOP_LIVE_SHARE"
         private const val FLUSH_MS = 8_000L
+        private const val PENDING_FILE = "pending_live_fixes.json"
 
         fun start(context: Context, rideId: String) {
             val intent = Intent(context, LiveLocationService::class.java).putExtra(EXTRA_RIDE_ID, rideId)
