@@ -92,6 +92,12 @@ class AppContainer(context: Context) {
 
     private val refreshApi: AuthApi = refreshRetrofit.create(AuthApi::class.java)
 
+    // Local store backing the offline response cache. Declared before the
+    // authenticated client so the TokenAuthenticator can wipe it on a forced
+    // logout (refresh failure), matching AuthRepository.logout().
+    private val database = AppDatabase.build(appContext)
+    val responseCache = ResponseCache(RoomCacheStore(database.cachedResponses()), json)
+
     /** Authenticated client: injects the bearer token and refreshes on 401. */
     private val authedClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
@@ -104,7 +110,7 @@ class AppContainer(context: Context) {
         // uploads still complete) so no authenticated request can hang forever.
         .callTimeout(90, TimeUnit.SECONDS)
         .addInterceptor(AuthInterceptor(session))
-        .authenticator(TokenAuthenticator(session, refreshApi))
+        .authenticator(TokenAuthenticator(session, refreshApi, responseCache))
         .addInterceptor(logging)
         .build()
 
@@ -129,10 +135,6 @@ class AppContainer(context: Context) {
     private val deviceId: String = runCatching {
         Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
     }.getOrNull().orEmpty().ifBlank { "unknown-device" }
-
-    // Local store backing the offline response cache.
-    private val database = AppDatabase.build(appContext)
-    val responseCache = ResponseCache(RoomCacheStore(database.cachedResponses()), json)
 
     val devicesRepository = DevicesRepository(devicesApi, json)
 

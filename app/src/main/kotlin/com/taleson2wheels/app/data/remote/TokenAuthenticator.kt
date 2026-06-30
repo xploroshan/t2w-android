@@ -1,5 +1,6 @@
 package com.taleson2wheels.app.data.remote
 
+import com.taleson2wheels.app.data.local.ResponseCache
 import com.taleson2wheels.app.data.remote.api.AuthApi
 import com.taleson2wheels.app.data.remote.dto.RefreshRequest
 import com.taleson2wheels.app.data.session.SessionStore
@@ -20,7 +21,9 @@ import okhttp3.Route
  *   token while this request was failing, it retries with the new token instead
  *   of refreshing again.
  * - On refresh failure (invalid/expired/reuse-detected refresh token) it clears
- *   the session and gives up, sending the user back to login.
+ *   the session AND the offline cache and gives up, sending the user back to
+ *   login — matching [AuthRepository.logout] so a forced logout can't leave the
+ *   previous account's cached, viewer-specific data on the device.
  *
  * [refreshApi] MUST be built on a client that has neither this authenticator nor
  * the [AuthInterceptor], otherwise a failing refresh would recurse.
@@ -28,6 +31,7 @@ import okhttp3.Route
 class TokenAuthenticator(
     private val session: SessionStore,
     private val refreshApi: AuthApi,
+    private val responseCache: ResponseCache? = null,
 ) : Authenticator {
 
     private val lock = Any()
@@ -57,12 +61,30 @@ class TokenAuthenticator(
             }.getOrNull()
 
             if (newTokens == null) {
-                runBlocking { session.clear() }
+                forceLogout()
                 return null
             }
 
-            runBlocking { session.save(newTokens) }
+            // Persisting the rotated pair can throw (Keystore key invalidated by a
+            // lock-screen credential change, or a DataStore IO error). Degrade to a
+            // clean forced logout instead of letting it escape the authenticator on
+            // the OkHttp dispatcher thread as an opaque call failure.
+            val saved = runCatching { runBlocking { session.save(newTokens) } }.isSuccess
+            if (!saved) {
+                forceLogout()
+                return null
+            }
             return response.request.retryWith(newTokens.accessToken)
+        }
+    }
+
+    /** Wipe both the session and the offline cache so a forced logout can't leave
+     *  the previous account's cached, viewer-specific rows readable on the device.
+     *  Both wipes are best-effort — never let one throw out of authenticate(). */
+    private fun forceLogout() {
+        runBlocking {
+            runCatching { session.clear() }
+            responseCache?.clear()
         }
     }
 

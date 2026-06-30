@@ -24,10 +24,20 @@ class ResponseCache(
         runCatching { store.write(key, json.encodeToString(serializer, value)) }
     }
 
-    /** Drop every cached response. Called at login/logout so cached
-     *  viewer-specific data never leaks across accounts on a shared device. */
+    /** Drop every cached response. Called at logout / forced-logout — a teardown
+     *  path where a best-effort wipe is acceptable — so cached viewer-specific
+     *  data doesn't linger; swallows failures so a cache hiccup can't break the
+     *  sign-out itself. */
     suspend fun clear() {
         runCatching { store.clear() }
+    }
+
+    /** Like [clear] but RETHROWS on failure. Used at the login boundary so a new
+     *  session is never established while the previous account's cached,
+     *  viewer-specific rows might still be readable — the caller fails the sign-in
+     *  rather than letting the new bearer token go live over a dirty cache. */
+    suspend fun clearStrict() {
+        store.clear()
     }
 
     /** Drop a single cached entry whose underlying data a local mutation has just
