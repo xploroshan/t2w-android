@@ -22,11 +22,16 @@ private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataS
  * which run off the main thread and cannot suspend).
  *
  * The in-memory [StateFlow] is the source of truth at runtime; [hydrate] loads
- * it from disk once at startup. Refresh tokens here are stored in the app's
- * private DataStore and excluded from backups (see res/xml/backup_rules.xml).
- * Hardening to the Android Keystore is a follow-up — see README.
+ * it from disk once at startup. Tokens are encrypted at rest with an AES-GCM key
+ * held in the hardware-backed Android Keystore ([TokenCipher]) and excluded from
+ * backups (see res/xml/backup_rules.xml), so the on-disk DataStore never holds a
+ * usable token. A token that fails to decrypt (e.g. the Keystore key was
+ * invalidated) is treated as "no session".
  */
-class SessionStore(private val context: Context) {
+class SessionStore(
+    private val context: Context,
+    private val cipher: TokenCipher = TokenCipher(),
+) {
 
     private val accessKey = stringPreferencesKey("access_token")
     private val refreshKey = stringPreferencesKey("refresh_token")
@@ -40,19 +45,27 @@ class SessionStore(private val context: Context) {
 
     val isLoggedIn: Boolean get() = _tokens.value != null
 
-    /** Load persisted tokens into memory. Call once on app start. */
+    /** Load persisted tokens into memory, decrypting them. Call once on app start. */
     suspend fun hydrate() {
         val prefs = context.sessionDataStore.data.first()
-        val access = prefs[accessKey]
-        val refresh = prefs[refreshKey]
-        _tokens.value = if (access != null && refresh != null) Tokens(access, refresh) else null
+        val access = prefs[accessKey]?.let { cipher.decryptOrNull(it) }
+        val refresh = prefs[refreshKey]?.let { cipher.decryptOrNull(it) }
+        if (access != null && refresh != null) {
+            _tokens.value = Tokens(access, refresh)
+        } else {
+            // Missing or undecryptable (key invalidated / corrupted) → drop the stale blob.
+            _tokens.value = null
+            if (prefs[accessKey] != null || prefs[refreshKey] != null) {
+                context.sessionDataStore.edit { it.clear() }
+            }
+        }
         _ready.value = true
     }
 
     suspend fun save(tokens: Tokens) {
         context.sessionDataStore.edit { prefs ->
-            prefs[accessKey] = tokens.accessToken
-            prefs[refreshKey] = tokens.refreshToken
+            prefs[accessKey] = cipher.encrypt(tokens.accessToken)
+            prefs[refreshKey] = cipher.encrypt(tokens.refreshToken)
         }
         _tokens.value = tokens
     }
