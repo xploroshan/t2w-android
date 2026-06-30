@@ -30,3 +30,20 @@ data class BlogCard(
 /** `/blogs/{id}` wraps the post in `{ "blog": ... }`. */
 @Serializable
 data class BlogResponse(val blog: BlogCard)
+
+/**
+ * Request body for `POST /api/v1/blogs` (privileged roles only). Mirrors the
+ * `BlogInput` schema in `docs/openapi-v1.yaml`; only `title` is required and the
+ * server fills `authorId`/`authorName`/`approvalStatus` from the bearer token.
+ */
+@Serializable
+data class BlogInput(
+    val title: String,
+    val excerpt: String? = null,
+    val content: String? = null,
+    val coverImage: String? = null,
+    val tags: List<String> = emptyList(),
+    val type: String = "personal",
+    val isVlog: Boolean = false,
+    val videoUrl: String? = null,
+)

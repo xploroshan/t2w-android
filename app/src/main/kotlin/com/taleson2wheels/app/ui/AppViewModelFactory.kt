@@ -8,6 +8,7 @@ import com.taleson2wheels.app.ui.auth.ForgotPasswordViewModel
 import com.taleson2wheels.app.ui.auth.LoginViewModel
 import com.taleson2wheels.app.ui.achievements.AchievementsViewModel
 import com.taleson2wheels.app.ui.auth.RegisterViewModel
+import com.taleson2wheels.app.ui.blogs.BlogComposerViewModel
 import com.taleson2wheels.app.ui.blogs.BlogDetailViewModel
 import com.taleson2wheels.app.ui.blogs.BlogsViewModel
 import com.taleson2wheels.app.ui.content.CrewViewModel
@@ -88,7 +89,10 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             CrewViewModel(container.catalogRepository) as T
 
         modelClass.isAssignableFrom(BlogsViewModel::class.java) ->
-            BlogsViewModel(container.blogsRepository) as T
+            BlogsViewModel(container.blogsRepository, container.authRepository) as T
+
+        modelClass.isAssignableFrom(BlogComposerViewModel::class.java) ->
+            BlogComposerViewModel(container.blogsRepository, container.uploadRepository) as T
 
         modelClass.isAssignableFrom(BlogDetailViewModel::class.java) ->
             BlogDetailViewModel(container.blogsRepository) as T
