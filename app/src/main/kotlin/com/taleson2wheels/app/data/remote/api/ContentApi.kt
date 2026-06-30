@@ -1,12 +1,12 @@
 package com.taleson2wheels.app.data.remote.api
 
+import com.taleson2wheels.app.data.remote.dto.AchievementsResponse
 import com.taleson2wheels.app.data.remote.dto.BadgesResponse
 import com.taleson2wheels.app.data.remote.dto.CrewResponse
 import com.taleson2wheels.app.data.remote.dto.GuidelinesResponse
 import com.taleson2wheels.app.data.remote.dto.HealthDto
 import com.taleson2wheels.app.data.remote.dto.NotificationsResponse
 import com.taleson2wheels.app.data.remote.dto.StatsDto
-import kotlinx.serialization.json.JsonObject
 import retrofit2.http.GET
 
 /** Read-only catalog + the health probe. All paths are implemented on `main`. */
@@ -27,9 +27,9 @@ interface ContentApi {
     @GET("api/v1/badges")
     suspend fun badges(): BadgesResponse
 
-    /** Shape is open-ended (`additionalProperties`); kept as a raw JSON object. */
+    /** Period "arena" standings; open-ended server shape, stable subset modelled. */
     @GET("api/v1/achievements")
-    suspend fun achievements(): JsonObject
+    suspend fun achievements(): AchievementsResponse
 
     @GET("api/v1/notifications")
     suspend fun notifications(): NotificationsResponse
