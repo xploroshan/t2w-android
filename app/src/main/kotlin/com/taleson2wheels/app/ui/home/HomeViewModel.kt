@@ -39,6 +39,11 @@ class HomeViewModel(
 
     init {
         refresh()
+        // Keep the dashboard's upcoming-rides section in sync after the user
+        // registers for a ride elsewhere in the app.
+        viewModelScope.launch {
+            ridesRepository.registrations.collect { refresh() }
+        }
     }
 
     fun refresh() {

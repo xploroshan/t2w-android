@@ -11,6 +11,9 @@ import com.taleson2wheels.app.data.remote.dto.RidePost
 import com.taleson2wheels.app.data.remote.dto.RidePostInput
 import com.taleson2wheels.app.data.remote.dto.RideRegistrationDto
 import com.taleson2wheels.app.data.remote.safeApiCall
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.serialization.json.Json
 
 /**
@@ -25,6 +28,14 @@ class RidesRepository(
     private val json: Json,
     private val cache: ResponseCache,
 ) {
+    // Emits the rideId whenever the current user successfully registers for a
+    // ride. The ride detail / rides list / home dashboard observe this so they can
+    // refresh their now-stale, viewer-specific state (the "Register" CTA, the
+    // registeredRiders count, myRegistrationStatus) instead of showing the
+    // pre-registration snapshot until the next manual pull-to-refresh.
+    private val _registrations = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    val registrations: SharedFlow<String> = _registrations.asSharedFlow()
+
     suspend fun rides(
         cursor: String? = null,
         limit: Int = 20,
@@ -54,8 +65,18 @@ class RidesRepository(
             safeApiCall(json) { ridesApi.detail(id).ride }
         }
 
-    suspend fun register(rideId: String, body: RegisterRideRequest): ApiResult<RideRegistrationDto> =
-        safeApiCall(json) { ridesApi.register(rideId, body).registration }
+    suspend fun register(rideId: String, body: RegisterRideRequest): ApiResult<RideRegistrationDto> {
+        val result = safeApiCall(json) { ridesApi.register(rideId, body).registration }
+        if (result is ApiResult.Success) {
+            // The cached ride detail + first list page still describe the
+            // pre-registration state (currentUserRegistered=false, old counts).
+            // Drop them so the next read re-fetches, then notify observers.
+            cache.invalidate("ride:$rideId")
+            cache.invalidate(CACHE_RIDES_FIRST)
+            _registrations.tryEmit(rideId)
+        }
+        return result
+    }
 
     suspend fun posts(rideId: String, cursor: String? = null, limit: Int = 20): ApiResult<Page<RidePost>> =
         safeApiCall(json) { ridesApi.posts(rideId, cursor = cursor, limit = limit) }

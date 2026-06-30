@@ -38,6 +38,12 @@ class RidesViewModel(
 
     init {
         refresh()
+        // Reflect a registration made deeper in the flow (ride detail → form) when
+        // the user returns to the list, so the card's rider count / "you:" status
+        // updates without a manual pull-to-refresh.
+        viewModelScope.launch {
+            ridesRepository.registrations.collect { refresh() }
+        }
     }
 
     fun refresh() {
