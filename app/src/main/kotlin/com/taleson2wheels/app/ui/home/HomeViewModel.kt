@@ -42,9 +42,11 @@ class HomeViewModel(
             val statsDeferred = async { catalogRepository.stats() }
             val notifsDeferred = async { catalogRepository.notifications() }
 
-            val name = (meDeferred.await() as? ApiResult.Success)?.data?.name
-            val stats = (statsDeferred.await() as? ApiResult.Success)?.data
+            val meResult = meDeferred.await()
+            val statsResult = statsDeferred.await()
             val notifsResult = notifsDeferred.await()
+            val name = (meResult as? ApiResult.Success)?.data?.name
+            val stats = (statsResult as? ApiResult.Success)?.data
             val notifs = (notifsResult as? ApiResult.Success)?.data.orEmpty()
 
             uiState = HomeUiState(
@@ -52,9 +54,17 @@ class HomeViewModel(
                 userName = name,
                 stats = stats,
                 notifications = notifs.take(5),
-                // Only surface an error when the whole dashboard came back empty.
-                error = if (name == null && stats == null && notifsResult is ApiResult.Failure) {
-                    notifsResult.error.userMessage
+                // Surface an error only when the dashboard has nothing to show
+                // (no user, no stats, no notifications) AND at least one call
+                // actually failed — an empty-but-successful feed is a normal
+                // state. Carry whichever failure message is available, rather
+                // than keying solely on the notifications result being a Failure
+                // (which left auth/stats failures invisible when notifs returned
+                // an empty success).
+                error = if (name == null && stats == null && notifs.isEmpty()) {
+                    listOf(meResult, statsResult, notifsResult)
+                        .filterIsInstance<ApiResult.Failure>()
+                        .firstOrNull()?.error?.userMessage
                 } else {
                     null
                 },

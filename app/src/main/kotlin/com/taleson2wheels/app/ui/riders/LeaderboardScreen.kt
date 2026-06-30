@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.data.remote.dto.RiderDto
@@ -115,10 +116,23 @@ fun LeaderboardScreen(
                     itemsIndexed(state.riders, key = { _, r -> r.id }) { index, rider ->
                         RiderRow(rank = index + 1, rider = rider, onClick = { onRiderClick(rider.id) })
                     }
-                    if (state.canLoadMore) {
+                    if (state.canLoadMore || state.loadMoreError != null) {
                         item(key = "load-more") {
-                            LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                            if (state.loadMoreError != null) {
+                                Text(
+                                    text = "Couldn't load more — tap to retry",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.loadMore() }
+                                        .padding(16.dp),
+                                )
+                            } else {
+                                LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
+                                LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                            }
                         }
                     }
                 }
