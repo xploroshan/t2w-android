@@ -1,8 +1,8 @@
 package com.taleson2wheels.app.ui.profile
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -22,8 +21,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,6 +35,10 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
+import com.taleson2wheels.app.ui.components.SectionHeader
+import com.taleson2wheels.app.ui.theme.badgeTierColor
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,16 +54,17 @@ fun ProfileScreen(
 ) {
     val state = viewModel.uiState
     // Re-fetch when the screen re-enters composition (e.g. returning from edit).
-    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
+    LaunchedEffect(Unit) { viewModel.refresh() }
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Profile") },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary,
                 ),
                 actions = {
                     IconButton(onClick = viewModel::logout) {
@@ -68,19 +74,20 @@ fun ProfileScreen(
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.error != null && state.user == null ->
-                ErrorView(state.error, viewModel::refresh, Modifier.padding(innerPadding))
-            state.user != null -> ProfileBody(
-                user = state.user,
-                onOpenGuidelines = onOpenGuidelines,
-                onOpenCrew = onOpenCrew,
-                onOpenGarage = onOpenGarage,
-                onEditProfile = onEditProfile,
-                onChangePassword = onChangePassword,
-                modifier = Modifier.padding(innerPadding),
-            )
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.error != null && state.user == null ->
+                    ErrorView(state.error, viewModel::refresh)
+                state.user != null -> ProfileBody(
+                    user = state.user,
+                    onOpenGuidelines = onOpenGuidelines,
+                    onOpenCrew = onOpenCrew,
+                    onOpenGarage = onOpenGarage,
+                    onEditProfile = onEditProfile,
+                    onChangePassword = onChangePassword,
+                )
+            }
         }
     }
 }
@@ -97,7 +104,7 @@ private fun ProfileBody(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(20.dp),
+        contentPadding = PaddingValues(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
@@ -105,8 +112,13 @@ private fun ProfileBody(
                 Avatar(url = user.avatar, name = user.name, size = 72.dp)
                 Column {
                     Text(user.name, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
-                    Text(user.email, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
-                    Text(user.role, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                    Text(user.email, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = user.role.replace('_', ' ').replaceFirstChar { it.uppercase() },
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.SemiBold,
+                    )
                 }
             }
         }
@@ -137,64 +149,57 @@ private fun ProfileBody(
 
 @Composable
 private fun MiniStat(value: String, label: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier) {
-        Column(Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    BrandCard(modifier = modifier, contentPadding = PaddingValues(vertical = 14.dp)) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(value, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
-private fun SectionHeader(text: String) {
-    Text(text, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
-}
-
-@Composable
 internal fun MotorcycleCard(bike: MotorcycleDto) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                // A non-null but blank nickname must not render an empty title —
-                // fall back to make + model.
-                text = bike.nickname?.takeIf { it.isNotBlank() } ?: "${bike.make} ${bike.model}",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                text = "${bike.make} ${bike.model} · ${bike.year} · ${bike.cc}cc",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            // A non-null but blank nickname must not render an empty title —
+            // fall back to make + model.
+            text = bike.nickname?.takeIf { it.isNotBlank() } ?: "${bike.make} ${bike.model}",
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "${bike.make} ${bike.model} · ${bike.year} · ${bike.cc}cc",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
 @Composable
 private fun BadgeRow(earned: EarnedBadgeDto) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp)) {
-            Text(
-                text = earned.badge?.name ?: earned.badge?.tier ?: "Badge",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            earned.badge?.description?.let {
-                Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
-            }
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = earned.badge?.name ?: earned.badge?.tier ?: "Badge",
+            style = MaterialTheme.typography.titleLarge,
+            color = badgeTierColor(earned.badge?.tier),
+            fontWeight = FontWeight.SemiBold,
+        )
+        earned.badge?.description?.let {
+            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
 private fun LinkRow(label: String, onClick: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)) {
+    BrandCard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            Text(label, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(label, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
         }
     }
