@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "t2w-android"
 include(":app")
+include(":macrobenchmark")

@@ -118,6 +118,17 @@ android {
                 "\"${secretOr("T2W_API_BASE_URL", "https://taleson2wheels.com/")}\"",
             )
         }
+        // A release-like variant for Macrobenchmark: minified/shrunk like release
+        // (so startup numbers reflect production) but debug-signed and marked
+        // profileable (see src/benchmark/AndroidManifest.xml) so the perf harness
+        // can attach without a debuggable build. Measured by the :macrobenchmark
+        // module on the perf CI; assembles locally with no device.
+        create("benchmark") {
+            initWith(buildTypes.getByName("release"))
+            signingConfig = signingConfigs.getByName("debug")
+            matchingFallbacks += "release"
+            isDebuggable = false
+        }
     }
 
     compileOptions {
