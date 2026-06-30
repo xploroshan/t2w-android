@@ -24,6 +24,7 @@ import com.taleson2wheels.app.data.remote.dto.LiveRiderPosition
 import com.taleson2wheels.app.data.remote.dto.MotorcycleDto
 import com.taleson2wheels.app.data.remote.dto.NotificationDto
 import com.taleson2wheels.app.data.remote.dto.RideCard
+import com.taleson2wheels.app.data.remote.dto.RideDetail
 import com.taleson2wheels.app.data.remote.dto.RiderDto
 import com.taleson2wheels.app.data.remote.dto.StatsDto
 import com.taleson2wheels.app.ui.auth.AuthErrorText
@@ -40,6 +41,7 @@ import com.taleson2wheels.app.ui.profile.MotorcycleCard
 import com.taleson2wheels.app.ui.riders.Podium
 import com.taleson2wheels.app.ui.riders.RiderRow as LeaderboardRiderRow
 import com.taleson2wheels.app.ui.rides.RideCardItem
+import com.taleson2wheels.app.ui.rides.RideDetailBody
 import com.taleson2wheels.app.ui.theme.T2WTheme
 import org.junit.Rule
 import org.junit.Test
@@ -145,6 +147,21 @@ class ScreenshotTest {
             Podium(riders.take(3)) {}
             riders.drop(3).forEachIndexed { i, r -> LeaderboardRiderRow(rank = i + 4, rider = r) {} }
         }
+    }
+
+    @Test
+    fun ride_detail() = snapshot {
+        RideDetailBody(
+            ride = RideDetail(
+                id = "r1", title = "Coorg Monsoon Run", rideNumber = "42", type = "weekend",
+                status = "upcoming", startDate = "2026-07-18T06:00:00.000Z",
+                startLocation = "Bengaluru", endLocation = "Madikeri",
+                distanceKm = 320.0, difficulty = "Moderate",
+                description = "Three days through the Western Ghats — two mountain passes, one monsoon, and a lot of chai stops.",
+                fee = 2500.0, maxRiders = 25, registeredRiders = 18,
+            ),
+            onRegister = {}, onOpenPosts = {}, onOpenLive = {}, onOpenInsights = {}, onAddToCalendar = {},
+        )
     }
 
     @Test
