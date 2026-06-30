@@ -2,6 +2,7 @@ package com.taleson2wheels.app.ui.riders
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -29,6 +31,8 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,17 +57,19 @@ fun RiderProfileScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.error != null -> ErrorView(state.error, { viewModel.load(riderId) }, Modifier.padding(innerPadding))
-            state.rider != null -> RiderProfileBody(state.rider, Modifier.padding(innerPadding))
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.error != null -> ErrorView(state.error, { viewModel.load(riderId) })
+                state.rider != null -> RiderProfileBody(state.rider)
+            }
         }
     }
 }
@@ -83,13 +89,15 @@ private fun RiderProfileBody(rider: RiderDto, modifier: Modifier = Modifier) {
             fontWeight = FontWeight.Bold,
         )
         rider.userRole?.let {
-            Text(it, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+            Text(
+                text = it.replace('_', ' ').replaceFirstChar { c -> c.uppercase() },
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.SemiBold,
+            )
         }
 
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
+        BrandCard(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
             StatLine("Points", rider.totalPoints.toInt().toString())
             StatLine("Rides completed", rider.ridesCompleted.toString())
             StatLine("Distance", "${rider.totalKm.toInt()} km")
@@ -102,11 +110,11 @@ private fun RiderProfileBody(rider: RiderDto, modifier: Modifier = Modifier) {
 
 @Composable
 private fun StatLine(label: String, value: String) {
-    androidx.compose.foundation.layout.Row(
-        modifier = Modifier.fillMaxWidth(),
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onBackground)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             value,
             style = MaterialTheme.typography.bodyLarge,
