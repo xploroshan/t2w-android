@@ -13,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -27,6 +25,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -36,6 +35,8 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,19 +58,21 @@ fun AchievementsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.error != null -> ErrorView(state.error, viewModel::load, Modifier.padding(innerPadding))
-            state.data?.configured != true || state.data?.riders.isNullOrEmpty() ->
-                EmptyArena(Modifier.padding(innerPadding))
-            else -> AchievementsList(state.data!!, Modifier.padding(innerPadding))
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.error != null -> ErrorView(state.error, viewModel::load)
+                state.data?.configured != true || state.data?.riders.isNullOrEmpty() ->
+                    EmptyArena()
+                else -> AchievementsList(state.data!!)
+            }
         }
     }
 }
@@ -80,7 +83,7 @@ private fun EmptyArena(modifier: Modifier = Modifier) {
         Text(
             "No achievement period is running right now.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -118,14 +121,11 @@ private fun AchievementsList(data: AchievementsResponse, modifier: Modifier = Mo
 
 @Composable
 private fun AchievementRow(rank: Int, rider: AchievementRider) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = if (rider.highlighted) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        ),
-    ) {
+    // BrandCard sits on the same surface for everyone; the current user
+    // ([highlighted]) is marked by an accent name instead of a tinted container.
+    BrandCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(12.dp)) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(12.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -138,21 +138,28 @@ private fun AchievementRow(rank: Int, rider: AchievementRider) {
             )
             Avatar(url = rider.avatarUrl, name = rider.name)
             Column(Modifier.weight(1f)) {
-                Text(rider.name, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+                Text(
+                    rider.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = if (rider.highlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    fontWeight = if (rider.highlighted) FontWeight.Bold else FontWeight.SemiBold,
+                )
                 Text(
                     "${rider.ridesCompletedInPeriod} rides · ${rider.totalPts.toInt()} pts",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val frac = (rider.percentageAchieved / 100.0).coerceIn(0.0, 1.0).toFloat()
                 LinearProgressIndicator(
                     progress = { frac },
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 )
             }
             Text(
                 "${rider.percentageAchieved.toInt()}%",
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.SemiBold,
             )
