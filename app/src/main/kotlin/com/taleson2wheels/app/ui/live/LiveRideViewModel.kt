@@ -55,15 +55,31 @@ class LiveRideViewModel(
 
     private var pollJob: Job? = null
 
+    /**
+     * Begin (or resume) polling session state + metrics every [POLL_MS]. Driven by
+     * the screen's lifecycle (started on ON_START, [stop]ped on ON_STOP), so the
+     * loop pauses when the screen is backgrounded or buried under another
+     * destination instead of hammering the server for the life of the back-stack
+     * entry. Idempotent while a poll is already running. Does an immediate refresh
+     * on (re)start — silent once we already have data, so resuming doesn't flash
+     * the full-screen loader.
+     */
     fun start(rideId: String) {
-        if (pollJob != null) return
-        viewModelScope.launch { refreshOnce(rideId, firstLoad = true) }
+        if (pollJob?.isActive == true) return
+        val firstLoad = uiState.liveState == null
         pollJob = viewModelScope.launch {
+            refreshOnce(rideId, firstLoad = firstLoad)
             while (true) {
                 delay(POLL_MS)
                 refreshOnce(rideId, firstLoad = false)
             }
         }
+    }
+
+    /** Pause polling — called when the screen leaves the foreground. */
+    fun stop() {
+        pollJob?.cancel()
+        pollJob = null
     }
 
     /** Immediate re-fetch for the error screen's Retry button. start() returns
