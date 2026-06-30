@@ -25,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.taleson2wheels.app.ui.achievements.AchievementsScreen
+import com.taleson2wheels.app.ui.blogs.BlogComposerScreen
 import com.taleson2wheels.app.ui.blogs.BlogDetailScreen
 import com.taleson2wheels.app.ui.blogs.BlogsScreen
 import com.taleson2wheels.app.ui.content.CrewScreen
@@ -53,6 +54,7 @@ object Routes {
     const val RIDE_LIVE = "rides/{rideId}/live"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val BLOG_DETAIL = "stories/{blogId}"
+    const val BLOG_COMPOSE = "stories/compose"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
     const val GARAGE = "garage"
@@ -185,6 +187,13 @@ fun MainScreen(factory: AppViewModelFactory) {
                 BlogsScreen(
                     factory = factory,
                     onBlogClick = { id -> navController.navigate(Routes.blogDetail(id)) },
+                    onCompose = { navController.navigate(Routes.BLOG_COMPOSE) },
+                )
+            }
+            composable(Routes.BLOG_COMPOSE) {
+                BlogComposerScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(

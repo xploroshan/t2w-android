@@ -11,8 +11,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -37,6 +41,7 @@ fun BlogsScreen(
     factory: AppViewModelFactory,
     onBlogClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onCompose: () -> Unit = {},
     viewModel: BlogsViewModel = viewModel(factory = factory),
 ) {
     val state = viewModel.uiState
@@ -50,6 +55,15 @@ fun BlogsScreen(
                     titleContentColor = MaterialTheme.colorScheme.onPrimary,
                 ),
             )
+        },
+        floatingActionButton = {
+            if (state.canCompose) {
+                ExtendedFloatingActionButton(
+                    onClick = onCompose,
+                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    text = { Text("Write") },
+                )
+            }
         },
     ) { innerPadding ->
         when {
