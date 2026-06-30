@@ -8,6 +8,7 @@ package com.taleson2wheels.app.data.local
 interface CacheStore {
     suspend fun read(key: String): String?
     suspend fun write(key: String, json: String)
+    suspend fun delete(key: String)
     suspend fun clear()
 }
 
@@ -34,6 +35,8 @@ class RoomCacheStore(
         dao.put(CachedResponse(key = key, json = json, updatedAt = t))
         dao.evictOlderThan(t - maxAgeMillis)
     }
+
+    override suspend fun delete(key: String) = dao.deleteByKey(key)
 
     override suspend fun clear() = dao.clearAll()
 

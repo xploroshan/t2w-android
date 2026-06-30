@@ -22,6 +22,7 @@ class ResponseCacheTest {
         val map = mutableMapOf<String, String>()
         override suspend fun read(key: String): String? = map[key]
         override suspend fun write(key: String, json: String) { map[key] = json }
+        override suspend fun delete(key: String) { map.remove(key) }
         override suspend fun clear() { map.clear() }
     }
 
@@ -75,6 +76,19 @@ class ResponseCacheTest {
     fun `readOrNull tolerates an undecodable blob as a miss`() = runTest {
         val store = FakeStore().apply { map["k"] = "{ not valid json" }
         assertNull(cache(store).readOrNull("k", serializer))
+    }
+
+    @Test
+    fun `invalidate drops only the named entry`() = runTest {
+        val store = FakeStore()
+        val cache = cache(store)
+        cache.save("ride:abc", Sample(1), serializer)
+        cache.save("rides:first", Sample(2), serializer)
+
+        cache.invalidate("ride:abc")
+
+        assertNull("the invalidated entry is gone", cache.readOrNull("ride:abc", serializer))
+        assertEquals("other entries are untouched", Sample(2), cache.readOrNull("rides:first", serializer))
     }
 
     @Test

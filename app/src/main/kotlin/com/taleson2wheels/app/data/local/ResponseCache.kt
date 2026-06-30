@@ -30,6 +30,12 @@ class ResponseCache(
         runCatching { store.clear() }
     }
 
+    /** Drop a single cached entry whose underlying data a local mutation has just
+     *  made stale (e.g. the ride detail after the user registers). Best-effort. */
+    suspend fun invalidate(key: String) {
+        runCatching { store.delete(key) }
+    }
+
     /**
      * Run [networkCall]; on success refresh the cache and return the fresh data.
      * On a *connectivity* failure (offline/timeout — [ApiError.Network]) fall back

@@ -27,9 +27,24 @@ class RideDetailViewModel(private val ridesRepository: RidesRepository) : ViewMo
 
     private var loadedId: String? = null
 
+    init {
+        // If the user registers for the ride currently shown, its cached detail is
+        // now stale (still "Register" CTA + old rider count). Re-fetch so the
+        // screen reflects the registration the moment they return to it, instead
+        // of letting them register again. The screen's LaunchedEffect(rideId)
+        // alone can't do this: the id is unchanged on return, so load() no-ops.
+        viewModelScope.launch {
+            ridesRepository.registrations.collect { id -> if (id == loadedId) fetch(id) }
+        }
+    }
+
     /** Idempotent: safe to call from a composable LaunchedEffect on recomposition. */
     fun load(id: String) {
         if (loadedId == id && uiState.error == null) return
+        fetch(id)
+    }
+
+    private fun fetch(id: String) {
         loadedId = id
         viewModelScope.launch {
             uiState = RideDetailUiState(isLoading = true)
