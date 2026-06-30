@@ -17,6 +17,9 @@ data class RidesUiState(
     val rides: List<RideCard> = emptyList(),
     val nextCursor: String? = null,
     val error: String? = null,
+    /** Set when fetching the NEXT page fails — shown as a tap-to-retry footer so
+     *  pagination errors aren't silently swallowed under an existing list. */
+    val loadMoreError: String? = null,
 ) {
     val canLoadMore: Boolean get() = nextCursor != null && !isLoadingMore && !isLoading
 }
@@ -55,7 +58,7 @@ class RidesViewModel(
         val cursor = uiState.nextCursor
         if (cursor == null || uiState.isLoadingMore) return
         viewModelScope.launch {
-            uiState = uiState.copy(isLoadingMore = true)
+            uiState = uiState.copy(isLoadingMore = true, loadMoreError = null)
             when (val result = ridesRepository.rides(cursor = cursor, limit = PAGE_SIZE)) {
                 is ApiResult.Success -> uiState = uiState.copy(
                     isLoadingMore = false,
@@ -64,7 +67,7 @@ class RidesViewModel(
                 )
                 is ApiResult.Failure -> uiState = uiState.copy(
                     isLoadingMore = false,
-                    error = result.error.userMessage,
+                    loadMoreError = result.error.userMessage,
                 )
             }
         }

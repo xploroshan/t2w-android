@@ -128,7 +128,7 @@ fun LiveRideScreen(
         when {
             state.isLoading -> LoadingView(Modifier.padding(innerPadding))
             state.error != null && state.liveState == null ->
-                ErrorView(state.error, { viewModel.start(rideId) }, Modifier.padding(innerPadding))
+                ErrorView(state.error, { viewModel.retry(rideId) }, Modifier.padding(innerPadding))
             else -> LazyColumn(
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(16.dp),

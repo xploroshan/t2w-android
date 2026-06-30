@@ -8,8 +8,10 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
-// Base URL for the T2W /api/v1 mobile namespace. Override per-machine by adding
-//   T2W_API_BASE_URL=https://your-host/api/v1/
+// Base URL for the T2W API. This is the HOST ROOT — the Retrofit service paths
+// already carry the `api/v1/` prefix, so the value must NOT include it or every
+// request would hit a doubled `/api/v1/api/v1/...`. Override per-machine by adding
+//   T2W_API_BASE_URL=https://your-host/       (host root + trailing slash, no /api/v1)
 // to a local `secrets.properties` (git-ignored) without editing this file.
 val secrets = Properties().apply {
     val f = rootProject.file("secrets.properties")
