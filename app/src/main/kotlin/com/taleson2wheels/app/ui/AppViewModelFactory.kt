@@ -8,6 +8,8 @@ import com.taleson2wheels.app.ui.auth.ForgotPasswordViewModel
 import com.taleson2wheels.app.ui.auth.LoginViewModel
 import com.taleson2wheels.app.ui.achievements.AchievementsViewModel
 import com.taleson2wheels.app.ui.auth.RegisterViewModel
+import com.taleson2wheels.app.ui.blogs.BlogDetailViewModel
+import com.taleson2wheels.app.ui.blogs.BlogsViewModel
 import com.taleson2wheels.app.ui.content.CrewViewModel
 import com.taleson2wheels.app.ui.content.GuidelinesViewModel
 import com.taleson2wheels.app.ui.garage.GarageViewModel
@@ -80,6 +82,12 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(CrewViewModel::class.java) ->
             CrewViewModel(container.catalogRepository) as T
+
+        modelClass.isAssignableFrom(BlogsViewModel::class.java) ->
+            BlogsViewModel(container.blogsRepository) as T
+
+        modelClass.isAssignableFrom(BlogDetailViewModel::class.java) ->
+            BlogDetailViewModel(container.blogsRepository) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }
