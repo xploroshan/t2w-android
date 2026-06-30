@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
+import com.taleson2wheels.app.ui.common.ZoomableAsyncImage
 import com.taleson2wheels.app.data.remote.dto.RidePost
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.auth.AuthErrorText
@@ -149,13 +150,11 @@ private fun RidePostCard(post: RidePost) {
             if (post.images.isNotEmpty()) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(post.images, key = { it }) { url ->
-                        SubcomposeAsyncImage(
-                            model = url,
+                        ZoomableAsyncImage(
+                            url = url,
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(160.dp).clip(RoundedCornerShape(12.dp)),
-                            loading = {},
-                            error = {},
                         )
                     }
                 }

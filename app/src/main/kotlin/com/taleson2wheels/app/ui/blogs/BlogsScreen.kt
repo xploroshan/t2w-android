@@ -15,6 +15,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -58,18 +59,24 @@ fun BlogsScreen(
                 ErrorView(state.error, viewModel::refresh, Modifier.padding(innerPadding))
             state.blogs.isEmpty() ->
                 ErrorView("No stories yet. Check back soon.", viewModel::refresh, Modifier.padding(innerPadding))
-            else -> LazyColumn(
+            else -> PullToRefreshBox(
+                isRefreshing = state.isLoading,
+                onRefresh = viewModel::refresh,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(state.blogs, key = { it.id }) { blog ->
-                    BlogCardItem(blog = blog, onClick = { onBlogClick(blog.id) })
-                }
-                if (state.canLoadMore) {
-                    item(key = "load-more") {
-                        LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                        LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(state.blogs, key = { it.id }) { blog ->
+                        BlogCardItem(blog = blog, onClick = { onBlogClick(blog.id) })
+                    }
+                    if (state.canLoadMore) {
+                        item(key = "load-more") {
+                            LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
+                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                        }
                     }
                 }
             }
