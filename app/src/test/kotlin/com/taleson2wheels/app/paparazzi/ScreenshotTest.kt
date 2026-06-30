@@ -24,6 +24,7 @@ import com.taleson2wheels.app.data.remote.dto.LiveRiderPosition
 import com.taleson2wheels.app.data.remote.dto.MotorcycleDto
 import com.taleson2wheels.app.data.remote.dto.NotificationDto
 import com.taleson2wheels.app.data.remote.dto.RideCard
+import com.taleson2wheels.app.data.remote.dto.RiderDto
 import com.taleson2wheels.app.data.remote.dto.StatsDto
 import com.taleson2wheels.app.ui.auth.AuthErrorText
 import com.taleson2wheels.app.ui.auth.AuthField
@@ -36,6 +37,8 @@ import com.taleson2wheels.app.ui.home.StatsGrid
 import com.taleson2wheels.app.ui.live.MetricsCard
 import com.taleson2wheels.app.ui.live.RiderRow
 import com.taleson2wheels.app.ui.profile.MotorcycleCard
+import com.taleson2wheels.app.ui.riders.Podium
+import com.taleson2wheels.app.ui.riders.RiderRow as LeaderboardRiderRow
 import com.taleson2wheels.app.ui.rides.RideCardItem
 import com.taleson2wheels.app.ui.theme.T2WTheme
 import org.junit.Rule
@@ -123,6 +126,24 @@ class ScreenshotTest {
             NotificationCard(
                 NotificationDto(id = "n1", title = "Spiti Expedition — registrations open", message = "10 seats · closes Friday"),
             )
+        }
+    }
+
+    @Test
+    fun leaderboard() = snapshot {
+        val riders = listOf(
+            RiderDto(id = "u1", name = "Aditi R", ridesCompleted = 42, totalKm = 9800.0, totalPoints = 1860.0),
+            RiderDto(id = "u2", name = "Vikram S", ridesCompleted = 38, totalKm = 8600.0, totalPoints = 1640.0),
+            RiderDto(id = "u3", name = "Neha K", ridesCompleted = 31, totalKm = 7100.0, totalPoints = 1390.0),
+            RiderDto(id = "u4", name = "Rahul M", ridesCompleted = 27, totalKm = 6200.0, totalPoints = 1120.0),
+            RiderDto(id = "u5", name = "Sana P", ridesCompleted = 22, totalKm = 5400.0, totalPoints = 980.0),
+        )
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Podium(riders.take(3)) {}
+            riders.drop(3).forEachIndexed { i, r -> LeaderboardRiderRow(rank = i + 4, rider = r) {} }
         }
     }
 
