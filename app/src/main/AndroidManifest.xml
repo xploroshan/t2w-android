@@ -24,6 +24,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.T2W">
 
+        <!-- Google Maps key (live-ride map). Injected from the MAPS_API_KEY
+             manifest placeholder; empty by default so the build works without it. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

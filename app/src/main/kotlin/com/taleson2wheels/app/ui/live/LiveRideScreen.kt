@@ -128,6 +128,9 @@ fun LiveRideScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item { StatusBanner(state) }
+                if (state.riders.isNotEmpty()) {
+                    item { LiveMapCard(state.riders, state.liveState?.leadPath ?: emptyList()) }
+                }
                 state.metrics?.let { item { MetricsCard(it) } }
                 item { ShareCard(isSharing, uploaded, ::requestShare, onStop = { LiveLocationService.stop(context) }) }
                 if (state.isLive && !state.joined) {
