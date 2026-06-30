@@ -14,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -28,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -38,6 +38,9 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
+import com.taleson2wheels.app.ui.components.SectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +56,7 @@ fun LiveInsightsScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("Ride insights") },
@@ -62,34 +66,35 @@ fun LiveInsightsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.isEmpty -> ErrorView(
-                state.error ?: "No insights available for this ride yet.",
-                { viewModel.load(rideId) },
-                Modifier.padding(innerPadding),
-            )
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                state.metrics?.let { item { SummaryCard(it) } }
-                if (state.elevation.size >= 2) {
-                    item { ElevationCard(state.elevation) }
-                }
-                val board = state.analytics?.leaderboard ?: emptyList()
-                if (board.isNotEmpty()) {
-                    item { SectionHeader("Distance leaderboard") }
-                    itemsIndexed(board, key = { _, r -> r.userId.ifBlank { r.name } }) { i, rider ->
-                        LeaderRow(rank = i + 1, rider = rider)
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.isEmpty -> ErrorView(
+                    state.error ?: "No insights available for this ride yet.",
+                    { viewModel.load(rideId) },
+                )
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    state.metrics?.let { item { SummaryCard(it) } }
+                    if (state.elevation.size >= 2) {
+                        item { ElevationCard(state.elevation) }
+                    }
+                    val board = state.analytics?.leaderboard ?: emptyList()
+                    if (board.isNotEmpty()) {
+                        item { SectionHeader("Distance leaderboard") }
+                        itemsIndexed(board, key = { _, r -> r.userId.ifBlank { r.name } }) { i, rider ->
+                            LeaderRow(rank = i + 1, rider = rider)
+                        }
                     }
                 }
             }
@@ -99,8 +104,8 @@ fun LiveInsightsScreen(
 
 @Composable
 private fun SummaryCard(m: LiveMetrics) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("Summary", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Stat("Distance", "${"%.1f".format(m.distanceKm)} km", Modifier.weight(1f))
@@ -127,15 +132,15 @@ private fun SummaryCard(m: LiveMetrics) {
 private fun Stat(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(value, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun ElevationCard(altitudes: List<Float>) {
     val primary = MaterialTheme.colorScheme.primary
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Elevation profile", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             val min = altitudes.min()
             val max = altitudes.max()
@@ -167,28 +172,23 @@ private fun ElevationCard(altitudes: List<Float>) {
 
 @Composable
 private fun LeaderRow(rank: Int, rider: AnalyticsRider) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    BrandCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(12.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(12.dp),
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("$rank", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
             Avatar(url = rider.avatar, name = rider.name)
             Column(Modifier.weight(1f)) {
-                Text(rider.name.ifBlank { "Rider" }, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+                Text(rider.name.ifBlank { "Rider" }, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Text(
                     "${rider.movingMinutes.toInt()} min · ${rider.avgSpeedKmh.toInt()} km/h avg",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text("${"%.1f".format(rider.distanceKm)} km", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+            Text("${"%.1f".format(rider.distanceKm)} km", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
         }
     }
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(text, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
 }
