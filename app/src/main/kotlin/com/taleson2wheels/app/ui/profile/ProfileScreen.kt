@@ -155,7 +155,9 @@ private fun MotorcycleCard(bike: MotorcycleDto) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp)) {
             Text(
-                text = listOfNotNull(bike.nickname, "${bike.make} ${bike.model}").first(),
+                // A non-null but blank nickname must not render an empty title —
+                // fall back to make + model.
+                text = bike.nickname?.takeIf { it.isNotBlank() } ?: "${bike.make} ${bike.model}",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
             )

@@ -63,6 +63,12 @@ class LiveRideViewModel(
         }
     }
 
+    /** Immediate re-fetch for the error screen's Retry button. start() returns
+     *  early once polling is running, so the button needs its own entry point. */
+    fun retry(rideId: String) {
+        viewModelScope.launch { refreshOnce(rideId, firstLoad = true) }
+    }
+
     private suspend fun refreshOnce(rideId: String, firstLoad: Boolean) {
         if (firstLoad) uiState = uiState.copy(isLoading = true, error = null)
         when (val r = liveRepository.state(rideId)) {

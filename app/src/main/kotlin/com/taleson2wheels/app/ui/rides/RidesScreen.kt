@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.R
@@ -83,11 +84,25 @@ fun RidesScreen(
                     items(state.rides, key = { it.id }) { ride ->
                         RideCardItem(ride = ride, onClick = { onRideClick(ride.id) })
                     }
-                    if (state.canLoadMore) {
+                    if (state.canLoadMore || state.loadMoreError != null) {
                         item(key = "load-more") {
-                            // Trigger the next page when the footer scrolls into view.
-                            LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                            if (state.loadMoreError != null) {
+                                // A failed page must not silently spin — let the user retry.
+                                Text(
+                                    text = "Couldn't load more — tap to retry",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.loadMore() }
+                                        .padding(16.dp),
+                                )
+                            } else {
+                                // Trigger the next page when the footer scrolls into view.
+                                LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
+                                LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                            }
                         }
                     }
                 }
