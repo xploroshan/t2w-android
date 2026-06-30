@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <data-extraction-rules>
     <cloud-backup>
+        <!-- Auth tokens: never leave the device. -->
         <exclude domain="file" path="datastore/t2w_session.preferences_pb" />
+        <!-- Viewer-specific Room response cache (plaintext JSON of the signed-in
+             user's rides/profile). Excluded so one user's cached data can't be
+             carried off-device and restored under another account context,
+             defeating the in-app auth-boundary wipe. Room runs in WAL mode, so
+             exclude the -wal/-shm sidecars too. -->
+        <exclude domain="database" path="t2w-cache.db" />
+        <exclude domain="database" path="t2w-cache.db-wal" />
+        <exclude domain="database" path="t2w-cache.db-shm" />
     </cloud-backup>
     <device-transfer>
         <exclude domain="file" path="datastore/t2w_session.preferences_pb" />
+        <exclude domain="database" path="t2w-cache.db" />
+        <exclude domain="database" path="t2w-cache.db-wal" />
+        <exclude domain="database" path="t2w-cache.db-shm" />
     </device-transfer>
 </data-extraction-rules>

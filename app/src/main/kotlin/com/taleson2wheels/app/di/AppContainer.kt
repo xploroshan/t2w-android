@@ -75,6 +75,12 @@ class AppContainer(context: Context) {
     private val plainClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        // Hard ceiling on the WHOLE call. connect/read only bound individual
+        // socket phases (idle gaps between bytes), so a byte-trickling server or
+        // a long redirect chain could otherwise hang a request indefinitely —
+        // and on the refresh path that stall is held under the synchronized
+        // refresh lock, blocking every queued 401 retry behind it.
+        .callTimeout(45, TimeUnit.SECONDS)
         .addInterceptor(logging)
         .build()
 
@@ -94,6 +100,9 @@ class AppContainer(context: Context) {
         // OkHttp's 10s default write window on slow links, or they fail as a
         // bogus "network unavailable".
         .writeTimeout(60, TimeUnit.SECONDS)
+        // Whole-call ceiling (>= the 60s upload write window so legitimate slow
+        // uploads still complete) so no authenticated request can hang forever.
+        .callTimeout(90, TimeUnit.SECONDS)
         .addInterceptor(AuthInterceptor(session))
         .authenticator(TokenAuthenticator(session, refreshApi))
         .addInterceptor(logging)

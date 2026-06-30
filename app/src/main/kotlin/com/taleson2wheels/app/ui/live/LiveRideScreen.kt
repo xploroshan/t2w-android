@@ -3,6 +3,7 @@ package com.taleson2wheels.app.ui.live
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
+import kotlinx.coroutines.launch
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +36,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +66,7 @@ fun LiveRideScreen(
     val state = viewModel.uiState
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     val activeShareRide by LiveShareController.activeRideId.collectAsState()
     val uploaded by LiveShareController.uploaded.collectAsState()
@@ -74,7 +77,23 @@ fun LiveRideScreen(
     ) { grants ->
         val locationGranted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-        if (locationGranted) LiveLocationService.start(context, rideId)
+        if (locationGranted) {
+            LiveLocationService.start(context, rideId)
+            // A denied POST_NOTIFICATIONS doesn't stop a location FGS from
+            // starting on Android 13+, but it suppresses the ongoing "sharing
+            // your location" indicator — so warn the user that sharing is
+            // running without a visible badge rather than letting it run
+            // invisibly (a transparency + Play-policy concern).
+            val notifOk = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                grants[Manifest.permission.POST_NOTIFICATIONS] == true
+            if (!notifOk) {
+                scope.launch {
+                    snackbar.showSnackbar(
+                        "Sharing started — turn on notifications to keep the ongoing 'sharing your location' indicator visible.",
+                    )
+                }
+            }
+        }
     }
 
     fun requestShare() {
