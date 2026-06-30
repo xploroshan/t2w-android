@@ -30,4 +30,9 @@ interface CachedResponseDao {
 
     @Query("DELETE FROM cached_responses WHERE updatedAt < :cutoff")
     suspend fun evictOlderThan(cutoff: Long)
+
+    /** Wipe the whole cache — used at the auth boundary so one user's cached,
+     *  viewer-specific data can't be served to the next account on the device. */
+    @Query("DELETE FROM cached_responses")
+    suspend fun clearAll()
 }

@@ -1,5 +1,6 @@
 package com.taleson2wheels.app.data.remote
 
+import kotlinx.coroutines.CancellationException
 import kotlinx.serialization.json.Json
 import retrofit2.HttpException
 import java.io.IOException
@@ -30,6 +31,10 @@ fun <T> ApiResult<T>.getOrNull(): T? = (this as? ApiResult.Success)?.data
 suspend inline fun <T> safeApiCall(json: Json, crossinline block: suspend () -> T): ApiResult<T> =
     try {
         ApiResult.Success(block())
+    } catch (e: CancellationException) {
+        // Never swallow cancellation — rethrow so structured concurrency works
+        // (a cancelled call must not surface as a spurious "something went wrong").
+        throw e
     } catch (e: HttpException) {
         ApiResult.Failure(e.toApiError(json))
     } catch (e: IOException) {

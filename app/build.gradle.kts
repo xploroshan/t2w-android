@@ -27,6 +27,21 @@ val keystoreProps = Properties().apply {
 }
 val hasReleaseSigning = keystoreProps.getProperty("storeFile") != null
 
+// De-silence the debug-signing fallback: if a RELEASE artifact is being built
+// without a real keystore, warn loudly. The build still proceeds (so CI and
+// unsigned local release builds keep working), but a debug-signed "release" is
+// NOT distributable — Play rejects it and updates can be spoofed with the public
+// debug key. Provide keystore.properties to sign properly (see docs/SETUP_SECRETS.md).
+run {
+    val buildingRelease = gradle.startParameter.taskNames.any { it.contains("elease") }
+    if (buildingRelease && !hasReleaseSigning) {
+        logger.warn(
+            "\n⚠️  RELEASE build with no keystore.properties — falling back to the PUBLIC " +
+                "debug signing key. This APK/AAB is NOT distributable. See docs/SETUP_SECRETS.md.\n",
+        )
+    }
+}
+
 android {
     namespace = "com.taleson2wheels.app"
     compileSdk = 35

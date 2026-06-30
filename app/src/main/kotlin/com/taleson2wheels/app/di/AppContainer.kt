@@ -90,6 +90,10 @@ class AppContainer(context: Context) {
     private val authedClient: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
+        // Multipart image uploads (avatars, ride/blog media) need more than
+        // OkHttp's 10s default write window on slow links, or they fail as a
+        // bogus "network unavailable".
+        .writeTimeout(60, TimeUnit.SECONDS)
         .addInterceptor(AuthInterceptor(session))
         .authenticator(TokenAuthenticator(session, refreshApi))
         .addInterceptor(logging)
@@ -134,6 +138,7 @@ class AppContainer(context: Context) {
         devicesRepository = devicesRepository,
         pushTokenProvider = pushTokenProvider,
         appBuild = BuildConfig.VERSION_NAME,
+        responseCache = responseCache,
     )
     val ridesRepository = RidesRepository(ridesApi, json, responseCache)
     val ridersRepository = RidersRepository(ridersApi, json)

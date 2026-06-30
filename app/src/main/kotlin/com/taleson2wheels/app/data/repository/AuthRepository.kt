@@ -11,6 +11,7 @@ import com.taleson2wheels.app.data.remote.dto.ProfileUpdateRequest
 import com.taleson2wheels.app.data.remote.dto.ResetPasswordRequest
 import com.taleson2wheels.app.data.remote.dto.UserDto
 import com.taleson2wheels.app.data.remote.dto.VerifyOtpRequest
+import com.taleson2wheels.app.data.local.ResponseCache
 import com.taleson2wheels.app.data.remote.safeApiCall
 import com.taleson2wheels.app.data.push.NoOpPushTokenProvider
 import com.taleson2wheels.app.data.push.PushTokenProvider
@@ -34,6 +35,7 @@ class AuthRepository(
     private val devicesRepository: DevicesRepository? = null,
     private val pushTokenProvider: PushTokenProvider = NoOpPushTokenProvider(),
     private val appBuild: String = "",
+    private val responseCache: ResponseCache? = null,
 ) {
     /** Reactive session — UI observes this to gate login vs. the app shell. */
     val tokens: StateFlow<Tokens?> = session.tokens
@@ -46,7 +48,12 @@ class AuthRepository(
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }
-        if (result is ApiResult.Success) syncPushDevice()
+        if (result is ApiResult.Success) {
+            // Drop any prior account's cached, viewer-specific data before this
+            // user's screens repopulate it.
+            responseCache?.clear()
+            syncPushDevice()
+        }
         return result
     }
 
@@ -73,7 +80,10 @@ class AuthRepository(
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }
-        if (result is ApiResult.Success) syncPushDevice()
+        if (result is ApiResult.Success) {
+            responseCache?.clear()
+            syncPushDevice()
+        }
         return result
     }
 
@@ -114,13 +124,15 @@ class AuthRepository(
             Unit
         }
 
-    /** Best-effort server-side revoke, then always clear the local session. */
+    /** Best-effort server-side revoke, then always clear the local session and
+     *  the offline cache (so the next account can't see this user's cached data). */
     suspend fun logout() {
         unsyncPushDevice()
         session.peekRefreshToken()?.let { token ->
             runCatching { authApi.logout(RefreshRequest(token)) }
         }
         session.clear()
+        responseCache?.clear()
     }
 
     /** Register this device's push token after a successful auth (best-effort). */
