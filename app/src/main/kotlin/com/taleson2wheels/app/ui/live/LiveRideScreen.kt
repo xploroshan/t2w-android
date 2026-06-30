@@ -43,6 +43,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.taleson2wheels.app.data.location.LiveLocationService
 import com.taleson2wheels.app.data.location.LiveShareController
@@ -62,7 +63,13 @@ fun LiveRideScreen(
     modifier: Modifier = Modifier,
     viewModel: LiveRideViewModel = viewModel(factory = factory),
 ) {
-    LaunchedEffect(rideId) { viewModel.start(rideId) }
+    // Poll only while the screen is in the foreground: start on ON_START, stop on
+    // ON_STOP/dispose. This pauses the 5s loop when the app is backgrounded or the
+    // user navigates deeper, instead of polling for the whole back-stack lifetime.
+    LifecycleStartEffect(rideId) {
+        viewModel.start(rideId)
+        onStopOrDispose { viewModel.stop() }
+    }
     val state = viewModel.uiState
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
