@@ -78,9 +78,16 @@ fun LiveRideScreen(
     }
 
     fun requestShare() {
-        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
+        val locationGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
-        if (granted) {
+        // On Android 13+ the foreground service needs POST_NOTIFICATIONS for its
+        // ongoing "sharing your location" notification to show. Request it even
+        // when location is already granted — otherwise background sharing runs
+        // with no visible indicator (a privacy/transparency + Play-policy issue).
+        val notificationNeeded = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (locationGranted && !notificationNeeded) {
             LiveLocationService.start(context, rideId)
         } else {
             val perms = buildList {

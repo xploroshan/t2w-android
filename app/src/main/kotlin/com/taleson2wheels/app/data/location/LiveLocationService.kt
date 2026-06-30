@@ -1,5 +1,6 @@
 package com.taleson2wheels.app.data.location
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,8 +8,12 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
 import android.location.Location
 import android.os.Build
+import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import com.taleson2wheels.app.R
 import com.taleson2wheels.app.T2WApplication
 import com.taleson2wheels.app.data.remote.ApiResult
@@ -50,10 +55,27 @@ class LiveLocationService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        // The OS can restart a location FGS (START_REDELIVER_INTENT) after the
+        // location permission was revoked; calling startForeground / starting GPS
+        // then would crash. Bail cleanly instead.
+        if (!hasLocationPermission()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        // Switching to a different ride while already running: drop the previous
+        // ride's buffered fixes so they aren't uploaded to the new ride's id.
+        if (rideId != null && rideId != id) {
+            synchronized(this) { buffer.clear() }
+        }
         rideId = id
 
         createChannel()
-        startForeground(NOTIF_ID, buildNotification())
+        if (!startForegroundSafely()) {
+            // ForegroundServiceStartNotAllowed (API 31+) / SecurityException
+            // (missing type or permission, API 34+) — can't run, so stop quietly.
+            stopSelf()
+            return START_NOT_STICKY
+        }
         LiveShareController.onStart(id)
 
         if (flushJob == null) {
@@ -61,12 +83,38 @@ class LiveLocationService : Service() {
             flushJob = scope.launch {
                 while (isActive) {
                     delay(FLUSH_MS)
-                    flush(id)
+                    // Read the CURRENT ride id each tick (not a captured local) so a
+                    // mid-session ride change uploads to the right ride.
+                    rideId?.let { flush(it) }
                 }
             }
         }
         // Re-deliver the last intent (with the ride id) if the service is restarted.
         return START_REDELIVER_INTENT
+    }
+
+    private fun hasLocationPermission(): Boolean {
+        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
+    }
+
+    /** Start in the foreground with the location type (required on API 34+),
+     *  swallowing the platform's start-not-allowed/security exceptions. */
+    private fun startForegroundSafely(): Boolean = try {
+        ServiceCompat.startForeground(
+            this,
+            NOTIF_ID,
+            buildNotification(),
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+            } else {
+                0
+            },
+        )
+        true
+    } catch (e: Exception) {
+        false
     }
 
     @Synchronized

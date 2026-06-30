@@ -40,6 +40,10 @@ class LeaderboardViewModel(
         private set
 
     private var searchJob: Job? = null
+    // Tracks the in-flight first-page load so a newer query/period/refresh can
+    // cancel a superseded request — otherwise an out-of-order response could
+    // overwrite the screen with results for a stale query.
+    private var loadJob: Job? = null
 
     init {
         refresh()
@@ -69,7 +73,10 @@ class LeaderboardViewModel(
     }
 
     fun refresh() {
-        viewModelScope.launch {
+        // Cancel any in-flight first-page load so its (possibly out-of-order)
+        // result can't land after this newer one.
+        loadJob?.cancel()
+        loadJob = viewModelScope.launch {
             uiState = uiState.copy(isLoading = true, error = null)
             when (
                 val result = ridersRepository.leaderboard(

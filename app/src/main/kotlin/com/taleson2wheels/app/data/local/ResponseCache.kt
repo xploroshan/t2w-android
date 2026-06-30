@@ -24,6 +24,12 @@ class ResponseCache(
         runCatching { store.write(key, json.encodeToString(serializer, value)) }
     }
 
+    /** Drop every cached response. Called at login/logout so cached
+     *  viewer-specific data never leaks across accounts on a shared device. */
+    suspend fun clear() {
+        runCatching { store.clear() }
+    }
+
     /**
      * Run [networkCall]; on success refresh the cache and return the fresh data.
      * On a *connectivity* failure (offline/timeout — [ApiError.Network]) fall back

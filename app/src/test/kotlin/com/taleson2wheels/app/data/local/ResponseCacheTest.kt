@@ -22,6 +22,7 @@ class ResponseCacheTest {
         val map = mutableMapOf<String, String>()
         override suspend fun read(key: String): String? = map[key]
         override suspend fun write(key: String, json: String) { map[key] = json }
+        override suspend fun clear() { map.clear() }
     }
 
     private val serializer = Sample.serializer()
@@ -74,5 +75,19 @@ class ResponseCacheTest {
     fun `readOrNull tolerates an undecodable blob as a miss`() = runTest {
         val store = FakeStore().apply { map["k"] = "{ not valid json" }
         assertNull(cache(store).readOrNull("k", serializer))
+    }
+
+    @Test
+    fun `clear empties the store so nothing leaks across the auth boundary`() = runTest {
+        val store = FakeStore()
+        val cache = cache(store)
+        cache.save("rides:first", Sample(1), serializer)
+        cache.save("ride:abc", Sample(2), serializer)
+        assertTrue(store.map.isNotEmpty())
+
+        cache.clear()
+
+        assertTrue(store.map.isEmpty())
+        assertNull(cache.readOrNull("rides:first", serializer))
     }
 }

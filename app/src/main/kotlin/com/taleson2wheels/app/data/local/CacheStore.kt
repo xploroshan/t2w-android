@@ -8,6 +8,7 @@ package com.taleson2wheels.app.data.local
 interface CacheStore {
     suspend fun read(key: String): String?
     suspend fun write(key: String, json: String)
+    suspend fun clear()
 }
 
 /** Room-backed [CacheStore]. Stamps each write with the current wall clock. */
@@ -21,4 +22,6 @@ class RoomCacheStore(
     override suspend fun write(key: String, json: String) {
         dao.put(CachedResponse(key = key, json = json, updatedAt = now()))
     }
+
+    override suspend fun clear() = dao.clearAll()
 }
