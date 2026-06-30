@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Exclude the auth token store from cloud backups so tokens never leave the
-     device via Auto Backup. -->
+<!-- Legacy (pre-Android 12) full-backup rules. Exclude the auth token store and
+     the viewer-specific Room response cache so neither leaves the device via
+     Auto Backup. Room runs in WAL mode, so exclude the -wal/-shm sidecars too. -->
 <full-backup-content>
     <exclude domain="file" path="datastore/t2w_session.preferences_pb" />
+    <exclude domain="database" path="t2w-cache.db" />
+    <exclude domain="database" path="t2w-cache.db-wal" />
+    <exclude domain="database" path="t2w-cache.db-shm" />
 </full-backup-content>
