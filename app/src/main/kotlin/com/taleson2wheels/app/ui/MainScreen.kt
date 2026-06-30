@@ -32,6 +32,7 @@ import com.taleson2wheels.app.ui.content.GuidelinesScreen
 import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
 import com.taleson2wheels.app.ui.live.LiveRideScreen
+import com.taleson2wheels.app.ui.notifications.NotificationsScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
 import com.taleson2wheels.app.ui.riders.RiderProfileScreen
@@ -56,6 +57,7 @@ object Routes {
     const val CREW = "crew"
     const val GARAGE = "garage"
     const val ACHIEVEMENTS = "achievements"
+    const val NOTIFICATIONS = "notifications"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
@@ -112,7 +114,15 @@ fun MainScreen(factory: AppViewModelFactory) {
             startDestination = Routes.HOME,
             modifier = Modifier.padding(innerPadding),
         ) {
-            composable(Routes.HOME) { HomeScreen(factory = factory) }
+            composable(Routes.HOME) {
+                HomeScreen(
+                    factory = factory,
+                    onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                )
+            }
+            composable(Routes.NOTIFICATIONS) {
+                NotificationsScreen(factory = factory, onBack = { navController.popBackStack() })
+            }
 
             composable(Routes.RIDES) {
                 RidesScreen(

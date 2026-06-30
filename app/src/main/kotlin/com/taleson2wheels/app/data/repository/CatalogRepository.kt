@@ -6,6 +6,7 @@ import com.taleson2wheels.app.data.remote.dto.AchievementsResponse
 import com.taleson2wheels.app.data.remote.dto.BadgeDto
 import com.taleson2wheels.app.data.remote.dto.CrewMemberDto
 import com.taleson2wheels.app.data.remote.dto.GuidelineDto
+import com.taleson2wheels.app.data.remote.dto.MarkReadRequest
 import com.taleson2wheels.app.data.remote.dto.NotificationDto
 import com.taleson2wheels.app.data.remote.dto.StatsDto
 import com.taleson2wheels.app.data.remote.safeApiCall
@@ -33,4 +34,8 @@ class CatalogRepository(
 
     suspend fun achievements(): ApiResult<AchievementsResponse> =
         safeApiCall(json) { contentApi.achievements() }
+
+    /** Mark notifications read; pass null [ids] to mark all. Returns the count updated. */
+    suspend fun markNotificationsRead(ids: List<String>? = null): ApiResult<Int> =
+        safeApiCall(json) { contentApi.markNotificationsRead(MarkReadRequest(ids)).updated }
 }
