@@ -61,7 +61,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             RidePostsViewModel(container.ridesRepository, container.uploadRepository) as T
 
         modelClass.isAssignableFrom(LiveRideViewModel::class.java) ->
-            LiveRideViewModel(container.liveRepository, container.locationTracker) as T
+            LiveRideViewModel(container.liveRepository) as T
 
         modelClass.isAssignableFrom(LeaderboardViewModel::class.java) ->
             LeaderboardViewModel(container.ridersRepository) as T
