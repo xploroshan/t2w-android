@@ -17,14 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +55,9 @@ import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
 import com.taleson2wheels.app.ui.common.readPickedImage
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
+import com.taleson2wheels.app.ui.components.SecondaryButton
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +73,7 @@ fun GarageScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text("My Garage") },
@@ -80,34 +83,43 @@ fun GarageScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = viewModel::startAdd) {
+            FloatingActionButton(
+                onClick = viewModel::startAdd,
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = Color.White,
+            ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add motorcycle")
             }
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.error != null && state.bikes.isEmpty() ->
-                ErrorView(state.error, viewModel::load, Modifier.padding(innerPadding))
-            else -> GarageList(
-                state = state,
-                onEdit = viewModel::startEdit,
-                onDelete = { pendingDelete = it },
-                modifier = Modifier.padding(innerPadding),
-            )
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.error != null && state.bikes.isEmpty() ->
+                    ErrorView(state.error, viewModel::load)
+                else -> GarageList(
+                    state = state,
+                    onEdit = viewModel::startEdit,
+                    onDelete = { pendingDelete = it },
+                )
+            }
         }
     }
 
     state.editor?.let { editor ->
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ModalBottomSheet(onDismissRequest = viewModel::dismissEditor, sheetState = sheetState) {
+        ModalBottomSheet(
+            onDismissRequest = viewModel::dismissEditor,
+            sheetState = sheetState,
+            containerColor = MaterialTheme.colorScheme.surface,
+        ) {
             GarageEditor(editor = editor, viewModel = viewModel)
         }
     }
@@ -145,7 +157,7 @@ private fun GarageList(
                 Text(
                     "No motorcycles yet. Tap + to add your first bike.",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onBackground,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -167,45 +179,45 @@ private fun MotorcycleCard(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            if (!bike.imageUrl.isNullOrBlank()) {
-                SubcomposeAsyncImage(
-                    model = bike.imageUrl,
-                    contentDescription = bikeTitle(bike),
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
-                    loading = {},
-                    error = {},
-                )
-            }
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    text = bikeTitle(bike),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                Text(
-                    text = listOfNotNull(
-                        "${bike.make} ${bike.model}",
-                        bike.year.takeIf { it > 0 }?.toString(),
-                        bike.cc.takeIf { it > 0 }?.let { "${it}cc" },
-                        bike.color?.ifBlank { null },
-                    ).joinToString(" · "),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    TextButton(onClick = onEdit, enabled = !isDeleting) { Text("Edit") }
-                    TextButton(onClick = onDelete, enabled = !isDeleting) {
-                        Text(if (isDeleting) "Removing…" else "Remove", color = MaterialTheme.colorScheme.error)
-                    }
+    // contentPadding=0 so the photo runs edge-to-edge to the rounded corners;
+    // the text block carries its own padding.
+    BrandCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(0.dp)) {
+        if (!bike.imageUrl.isNullOrBlank()) {
+            SubcomposeAsyncImage(
+                model = bike.imageUrl,
+                contentDescription = bikeTitle(bike),
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f),
+                loading = {},
+                error = {},
+            )
+        }
+        Column(Modifier.padding(16.dp)) {
+            Text(
+                text = bikeTitle(bike),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(
+                text = listOfNotNull(
+                    "${bike.make} ${bike.model}",
+                    bike.year.takeIf { it > 0 }?.toString(),
+                    bike.cc.takeIf { it > 0 }?.let { "${it}cc" },
+                    bike.color?.ifBlank { null },
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onEdit, enabled = !isDeleting) { Text("Edit") }
+                TextButton(onClick = onDelete, enabled = !isDeleting) {
+                    Text(if (isDeleting) "Removing…" else "Remove", color = MaterialTheme.colorScheme.error)
                 }
             }
         }
@@ -254,15 +266,16 @@ private fun GarageEditor(editor: GarageEditorState, viewModel: GarageViewModel) 
         AuthField(editor.color, viewModel::onColorChange, "Color", full, !editor.isSaving)
         AuthField(editor.nickname, viewModel::onNicknameChange, "Nickname (optional)", full, !editor.isSaving, imeAction = ImeAction.Done)
 
-        OutlinedButton(onClick = { pickImage.launch("image/*") }, enabled = !editor.isUploading, modifier = full) {
-            Text(
-                when {
-                    editor.isUploading -> "Uploading…"
-                    editor.imageUrl != null -> "Change photo"
-                    else -> "Add photo"
-                },
-            )
-        }
+        SecondaryButton(
+            text = when {
+                editor.isUploading -> "Uploading…"
+                editor.imageUrl != null -> "Change photo"
+                else -> "Add photo"
+            },
+            onClick = { pickImage.launch("image/*") },
+            enabled = !editor.isUploading,
+            modifier = full,
+        )
 
         AuthErrorText(editor.error, full)
         AuthPrimaryButton(
