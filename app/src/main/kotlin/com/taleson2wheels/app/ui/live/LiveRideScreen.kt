@@ -177,7 +177,7 @@ private fun StatusBanner(state: LiveUiState) {
 }
 
 @Composable
-private fun MetricsCard(m: LiveMetrics) {
+internal fun MetricsCard(m: LiveMetrics) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -273,7 +273,7 @@ private fun ControlButton(label: String, enabled: Boolean, modifier: Modifier = 
 }
 
 @Composable
-private fun RiderRow(rider: LiveRiderPosition) {
+internal fun RiderRow(rider: LiveRiderPosition) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),

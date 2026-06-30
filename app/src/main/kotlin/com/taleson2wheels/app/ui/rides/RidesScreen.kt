@@ -112,7 +112,7 @@ fun RidesScreen(
 }
 
 @Composable
-private fun RideCardItem(ride: RideCard, onClick: () -> Unit) {
+internal fun RideCardItem(ride: RideCard, onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
     ) {
