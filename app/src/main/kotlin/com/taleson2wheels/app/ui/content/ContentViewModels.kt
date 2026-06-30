@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.content
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +13,7 @@ import com.taleson2wheels.app.data.remote.dto.GuidelineDto
 import com.taleson2wheels.app.data.repository.CatalogRepository
 import kotlinx.coroutines.launch
 
+@Immutable
 data class GuidelinesUiState(
     val isLoading: Boolean = true,
     val guidelines: List<GuidelineDto> = emptyList(),
@@ -38,6 +41,7 @@ class GuidelinesViewModel(private val catalogRepository: CatalogRepository) : Vi
     }
 }
 
+@Immutable
 data class CrewUiState(
     val isLoading: Boolean = true,
     val crew: List<CrewMemberDto> = emptyList(),

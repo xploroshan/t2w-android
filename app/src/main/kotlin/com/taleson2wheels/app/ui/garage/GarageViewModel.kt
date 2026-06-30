@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.garage
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -31,6 +33,7 @@ data class GarageEditorState(
         get() = make.isNotBlank() && model.isNotBlank() && !isSaving && !isUploading
 }
 
+@Immutable
 data class GarageUiState(
     val isLoading: Boolean = true,
     val bikes: List<MotorcycleDto> = emptyList(),

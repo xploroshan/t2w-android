@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.auth
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,6 +14,7 @@ import kotlinx.coroutines.launch
 /** Three-step signup: verify the email, then set the password + name. */
 enum class RegisterStep { EMAIL, CODE, DETAILS }
 
+@Immutable
 data class RegisterUiState(
     val step: RegisterStep = RegisterStep.EMAIL,
     val email: String = "",

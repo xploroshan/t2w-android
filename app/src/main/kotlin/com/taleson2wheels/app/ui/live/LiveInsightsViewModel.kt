@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.live
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +13,7 @@ import com.taleson2wheels.app.data.remote.dto.LiveMetrics
 import com.taleson2wheels.app.data.repository.LiveRepository
 import kotlinx.coroutines.launch
 
+@Immutable
 data class LiveInsightsUiState(
     val isLoading: Boolean = true,
     val analytics: LiveAnalytics? = null,

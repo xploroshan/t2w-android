@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.auth
 
+import androidx.compose.runtime.Immutable
+
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +13,7 @@ import kotlinx.coroutines.launch
 
 enum class ResetStep { EMAIL, CODE, PASSWORD, DONE }
 
+@Immutable
 data class ForgotPasswordUiState(
     val step: ResetStep = ResetStep.EMAIL,
     val email: String = "",
