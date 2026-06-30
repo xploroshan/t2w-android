@@ -125,6 +125,7 @@ fun MainScreen(factory: AppViewModelFactory) {
                 HomeScreen(
                     factory = factory,
                     onOpenNotifications = { navController.navigate(Routes.NOTIFICATIONS) },
+                    onRideClick = { id -> navController.navigate(Routes.rideDetail(id)) },
                 )
             }
             composable(Routes.NOTIFICATIONS) {

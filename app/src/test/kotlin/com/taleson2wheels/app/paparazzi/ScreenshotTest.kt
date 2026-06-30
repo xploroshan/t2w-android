@@ -22,11 +22,17 @@ import com.taleson2wheels.app.data.remote.dto.BlogCard
 import com.taleson2wheels.app.data.remote.dto.LiveMetrics
 import com.taleson2wheels.app.data.remote.dto.LiveRiderPosition
 import com.taleson2wheels.app.data.remote.dto.MotorcycleDto
+import com.taleson2wheels.app.data.remote.dto.NotificationDto
 import com.taleson2wheels.app.data.remote.dto.RideCard
+import com.taleson2wheels.app.data.remote.dto.StatsDto
 import com.taleson2wheels.app.ui.auth.AuthErrorText
 import com.taleson2wheels.app.ui.auth.AuthField
 import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.blogs.BlogCardItem
+import com.taleson2wheels.app.ui.components.SectionHeader
+import com.taleson2wheels.app.ui.home.Hero
+import com.taleson2wheels.app.ui.home.NotificationCard
+import com.taleson2wheels.app.ui.home.StatsGrid
 import com.taleson2wheels.app.ui.live.MetricsCard
 import com.taleson2wheels.app.ui.live.RiderRow
 import com.taleson2wheels.app.ui.profile.MotorcycleCard
@@ -95,6 +101,28 @@ class ScreenshotTest {
             AuthPrimaryButton(text = "Sign in", enabled = true, loading = false, onClick = {}, modifier = Modifier.fillMaxWidth())
             Text("Forgot password?", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
             Text("New rider? Create an account", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+        }
+    }
+
+    @Test
+    fun home_landing() = snapshot {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Hero(userName = "Aditi")
+            StatsGrid(StatsDto(activeRiders = 128, ridesCompleted = 342, kmsCovered = 96450, countriesRidden = 7))
+            SectionHeader("Upcoming rides")
+            RideCardItem(
+                RideCard(
+                    id = "r1", title = "Coorg Monsoon Run", rideNumber = "42", status = "upcoming",
+                    distanceKm = 320.0, difficulty = "Moderate", registeredRiders = 18,
+                ),
+            ) {}
+            SectionHeader("What's new")
+            NotificationCard(
+                NotificationDto(id = "n1", title = "Spiti Expedition — registrations open", message = "10 seats · closes Friday"),
+            )
         }
     }
 
