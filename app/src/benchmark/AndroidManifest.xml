@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Benchmark-variant overlay: mark the app profileable so Macrobenchmark can
+     read startup/CPU traces from this non-debuggable, release-like build.
+     `profileable` is API 29+; the manifest merger drops it on older devices. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application>
+        <profileable android:shell="true" tools:targetApi="29" />
+    </application>
+</manifest>
