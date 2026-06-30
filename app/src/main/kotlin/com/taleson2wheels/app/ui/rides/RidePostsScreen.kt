@@ -39,6 +39,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,6 +57,8 @@ import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.readPickedImage
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -181,15 +184,13 @@ private fun RidePostCard(post: RidePost) {
 @Composable
 private fun Composer(state: RidePostsUiState, viewModel: RidePostsViewModel, rideId: String) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val full = Modifier.fillMaxWidth()
 
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) {
-            runCatching {
-                val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                val mime = context.contentResolver.getType(uri) ?: "image/jpeg"
-                if (bytes != null) viewModel.uploadImage(bytes, "tale.${mime.substringAfter('/')}", mime)
-            }
+        if (uri != null) scope.launch {
+            val img = context.readPickedImage(uri) ?: return@launch
+            viewModel.uploadImage(img.bytes, img.fileName("tale"), img.mime)
         }
     }
 
