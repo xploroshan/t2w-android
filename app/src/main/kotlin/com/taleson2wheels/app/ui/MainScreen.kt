@@ -27,11 +27,13 @@ import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
 import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
+import com.taleson2wheels.app.ui.live.LiveRideScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
 import com.taleson2wheels.app.ui.riders.RiderProfileScreen
 import com.taleson2wheels.app.ui.rides.RegistrationFormScreen
 import com.taleson2wheels.app.ui.rides.RideDetailScreen
+import com.taleson2wheels.app.ui.rides.RidePostsScreen
 import com.taleson2wheels.app.ui.rides.RidesScreen
 
 object Routes {
@@ -41,6 +43,8 @@ object Routes {
     const val PROFILE = "profile"
     const val RIDE_DETAIL = "rides/{rideId}"
     const val RIDE_REGISTER = "rides/{rideId}/register?title={title}"
+    const val RIDE_POSTS = "rides/{rideId}/posts"
+    const val RIDE_LIVE = "rides/{rideId}/live"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
@@ -48,6 +52,8 @@ object Routes {
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
+    fun ridePosts(id: String) = "rides/$id/posts"
+    fun rideLive(id: String) = "rides/$id/live"
     fun riderProfile(id: String) = "riders/$id"
 }
 
@@ -114,6 +120,28 @@ fun MainScreen(factory: AppViewModelFactory) {
                     factory = factory,
                     onBack = { navController.popBackStack() },
                     onRegister = { id, title -> navController.navigate(Routes.rideRegister(id, title)) },
+                    onOpenPosts = { id -> navController.navigate(Routes.ridePosts(id)) },
+                    onOpenLive = { id -> navController.navigate(Routes.rideLive(id)) },
+                )
+            }
+            composable(
+                route = Routes.RIDE_LIVE,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                LiveRideScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.RIDE_POSTS,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                RidePostsScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(

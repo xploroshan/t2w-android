@@ -91,3 +91,33 @@ data class RideRegistrationDto(
 /** `/rides/{id}/register` wraps the result in `{ "registration": ... }`. */
 @Serializable
 data class RideRegistrationResponse(val registration: RideRegistrationDto)
+
+/**
+ * A "ride tale" — a community post attached to a ride
+ * (`GET /rides/{id}/posts` → `Page<RidePost>`). The feed only returns approved
+ * posts; a freshly created post may be `pending` until a moderator approves it.
+ */
+@Serializable
+data class RidePost(
+    val id: String,
+    val rideId: String,
+    val authorId: String? = null,
+    val authorName: String = "",
+    val authorAvatar: String? = null,
+    val content: String = "",
+    val images: List<String> = emptyList(),
+    val approvalStatus: String? = null,
+    val approvedBy: String? = null,
+    val createdAt: String? = null,
+)
+
+/** Body for `POST /rides/{id}/register`'s sibling `POST /rides/{id}/posts`. */
+@Serializable
+data class RidePostInput(
+    val content: String,
+    val images: List<String> = emptyList(),
+)
+
+/** `/rides/{id}/posts` (create) wraps the new post in `{ "post": ... }`. */
+@Serializable
+data class RidePostResponse(val post: RidePost)
