@@ -34,6 +34,7 @@ import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
 import com.taleson2wheels.app.ui.live.LiveRideScreen
 import com.taleson2wheels.app.ui.notifications.NotificationsScreen
+import com.taleson2wheels.app.ui.profile.ProfileEditScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
 import com.taleson2wheels.app.ui.riders.RiderProfileScreen
@@ -60,6 +61,7 @@ object Routes {
     const val GARAGE = "garage"
     const val ACHIEVEMENTS = "achievements"
     const val NOTIFICATIONS = "notifications"
+    const val EDIT_PROFILE = "edit-profile"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
@@ -234,8 +236,12 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onOpenGuidelines = { navController.navigate(Routes.GUIDELINES) },
                     onOpenCrew = { navController.navigate(Routes.CREW) },
                     onOpenGarage = { navController.navigate(Routes.GARAGE) },
+                    onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 )
+            }
+            composable(Routes.EDIT_PROFILE) {
+                ProfileEditScreen(factory = factory, onBack = { navController.popBackStack() })
             }
             composable(Routes.GARAGE) {
                 GarageScreen(factory = factory, onBack = { navController.popBackStack() })

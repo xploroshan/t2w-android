@@ -25,6 +25,20 @@ data class UserDto(
     val earnedBadges: List<EarnedBadgeDto> = emptyList(),
 )
 
+/**
+ * Body for `PATCH /api/v1/auth/me` — self-editable fields only. Empty strings
+ * clear optional fields server-side; `avatar`/unset fields are left untouched
+ * when omitted (the app sends what the form holds).
+ */
+@Serializable
+data class ProfileUpdateRequest(
+    val name: String,
+    val phone: String? = null,
+    val city: String? = null,
+    val ridingExperience: String? = null,
+    val avatar: String? = null,
+)
+
 /** Leaderboard / crew entry (`/riders`, `/riders/{id}`). */
 @Serializable
 data class RiderDto(
