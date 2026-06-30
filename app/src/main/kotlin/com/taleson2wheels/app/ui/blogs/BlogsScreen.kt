@@ -28,6 +28,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.SubcomposeAsyncImage
@@ -86,10 +87,24 @@ fun BlogsScreen(
                     items(state.blogs, key = { it.id }) { blog ->
                         BlogCardItem(blog = blog, onClick = { onBlogClick(blog.id) })
                     }
-                    if (state.canLoadMore) {
+                    if (state.canLoadMore || state.loadMoreError != null) {
                         item(key = "load-more") {
-                            LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                            if (state.loadMoreError != null) {
+                                // A failed page must not silently spin — let the user retry.
+                                Text(
+                                    text = "Couldn't load more — tap to retry",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { viewModel.loadMore() }
+                                        .padding(16.dp),
+                                )
+                            } else {
+                                LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
+                                LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                            }
                         }
                     }
                 }

@@ -17,6 +17,9 @@ data class BlogsUiState(
     val blogs: List<BlogCard> = emptyList(),
     val nextCursor: String? = null,
     val error: String? = null,
+    /** Set when fetching the NEXT page fails — shown as a tap-to-retry footer so
+     *  pagination errors aren't silently swallowed under an existing list. */
+    val loadMoreError: String? = null,
     /** Whether to show the "write a story" affordance — gated on the signed-in role. */
     val canCompose: Boolean = false,
 ) {
@@ -65,14 +68,14 @@ class BlogsViewModel(
         val cursor = uiState.nextCursor
         if (cursor == null || uiState.isLoadingMore) return
         viewModelScope.launch {
-            uiState = uiState.copy(isLoadingMore = true)
+            uiState = uiState.copy(isLoadingMore = true, loadMoreError = null)
             when (val r = blogsRepository.blogs(cursor = cursor, limit = PAGE_SIZE)) {
                 is ApiResult.Success -> uiState = uiState.copy(
                     isLoadingMore = false,
                     blogs = uiState.blogs + r.data.items,
                     nextCursor = r.data.nextCursor,
                 )
-                is ApiResult.Failure -> uiState = uiState.copy(isLoadingMore = false, error = r.error.userMessage)
+                is ApiResult.Failure -> uiState = uiState.copy(isLoadingMore = false, loadMoreError = r.error.userMessage)
             }
         }
     }

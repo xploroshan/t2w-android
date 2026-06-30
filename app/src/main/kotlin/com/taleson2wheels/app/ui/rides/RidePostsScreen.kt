@@ -2,6 +2,7 @@ package com.taleson2wheels.app.ui.rides
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -113,10 +115,23 @@ fun RidePostsScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 items(state.posts, key = { it.id }) { post -> RidePostCard(post) }
-                if (state.canLoadMore) {
+                if (state.canLoadMore || state.loadMoreError != null) {
                     item(key = "load-more") {
-                        LaunchedEffect(state.nextCursor) { viewModel.loadMore(rideId) }
-                        LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                        if (state.loadMoreError != null) {
+                            Text(
+                                text = "Couldn't load more — tap to retry",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.loadMore(rideId) }
+                                    .padding(16.dp),
+                            )
+                        } else {
+                            LaunchedEffect(state.nextCursor) { viewModel.loadMore(rideId) }
+                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                        }
                     }
                 }
             }

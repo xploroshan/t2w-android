@@ -27,6 +27,8 @@ data class LeaderboardUiState(
     val riders: List<RiderDto> = emptyList(),
     val nextCursor: String? = null,
     val error: String? = null,
+    /** Set when fetching the NEXT page fails — shown as a tap-to-retry footer. */
+    val loadMoreError: String? = null,
 ) {
     val canLoadMore: Boolean get() = nextCursor != null && !isLoadingMore && !isLoading
 }
@@ -44,6 +46,9 @@ class LeaderboardViewModel(
     // cancel a superseded request — otherwise an out-of-order response could
     // overwrite the screen with results for a stale query.
     private var loadJob: Job? = null
+    // Tracks the in-flight NEXT-page load so a query/period change or refresh can
+    // cancel it — otherwise a stale-query page could append onto a newer list.
+    private var loadMoreJob: Job? = null
 
     init {
         refresh()
@@ -73,11 +78,12 @@ class LeaderboardViewModel(
     }
 
     fun refresh() {
-        // Cancel any in-flight first-page load so its (possibly out-of-order)
-        // result can't land after this newer one.
+        // Cancel any in-flight first-page AND next-page load so their (possibly
+        // out-of-order) results can't land after this newer query/period.
         loadJob?.cancel()
+        loadMoreJob?.cancel()
         loadJob = viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, error = null)
+            uiState = uiState.copy(isLoading = true, isLoadingMore = false, error = null, loadMoreError = null)
             when (
                 val result = ridersRepository.leaderboard(
                     limit = PAGE_SIZE,
@@ -101,25 +107,36 @@ class LeaderboardViewModel(
     fun loadMore() {
         val cursor = uiState.nextCursor
         if (cursor == null || uiState.isLoadingMore) return
-        viewModelScope.launch {
-            uiState = uiState.copy(isLoadingMore = true)
+        // Capture the query/period this page belongs to so a response that lands
+        // after the user changed the filter can be discarded rather than appended.
+        val reqPeriod = uiState.period
+        val reqQuery = uiState.query
+        loadMoreJob?.cancel()
+        loadMoreJob = viewModelScope.launch {
+            uiState = uiState.copy(isLoadingMore = true, loadMoreError = null)
             when (
                 val result = ridersRepository.leaderboard(
                     cursor = cursor,
                     limit = PAGE_SIZE,
-                    period = uiState.period.apiValue,
-                    search = uiState.query.ifBlank { null },
+                    period = reqPeriod.apiValue,
+                    search = reqQuery.ifBlank { null },
                 )
             ) {
-                is ApiResult.Success -> uiState = uiState.copy(
-                    isLoadingMore = false,
-                    riders = uiState.riders + result.data.items,
-                    nextCursor = result.data.nextCursor,
-                )
-                is ApiResult.Failure -> uiState = uiState.copy(
-                    isLoadingMore = false,
-                    error = result.error.userMessage,
-                )
+                is ApiResult.Success ->
+                    if (uiState.period == reqPeriod && uiState.query == reqQuery) {
+                        uiState = uiState.copy(
+                            isLoadingMore = false,
+                            riders = uiState.riders + result.data.items,
+                            nextCursor = result.data.nextCursor,
+                        )
+                    }
+                is ApiResult.Failure ->
+                    if (uiState.period == reqPeriod && uiState.query == reqQuery) {
+                        uiState = uiState.copy(
+                            isLoadingMore = false,
+                            loadMoreError = result.error.userMessage,
+                        )
+                    }
             }
         }
     }

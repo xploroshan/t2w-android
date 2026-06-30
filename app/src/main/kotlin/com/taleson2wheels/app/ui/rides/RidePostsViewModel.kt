@@ -18,6 +18,8 @@ data class RidePostsUiState(
     val posts: List<RidePost> = emptyList(),
     val nextCursor: String? = null,
     val error: String? = null,
+    /** Set when fetching the NEXT page fails — shown as a tap-to-retry footer. */
+    val loadMoreError: String? = null,
     // Composer
     val composerOpen: Boolean = false,
     val draft: String = "",
@@ -58,14 +60,14 @@ class RidePostsViewModel(
         val cursor = uiState.nextCursor
         if (cursor == null || uiState.isLoadingMore) return
         viewModelScope.launch {
-            uiState = uiState.copy(isLoadingMore = true)
+            uiState = uiState.copy(isLoadingMore = true, loadMoreError = null)
             when (val r = ridesRepository.posts(rideId, cursor = cursor, limit = PAGE_SIZE)) {
                 is ApiResult.Success -> uiState = uiState.copy(
                     isLoadingMore = false,
                     posts = uiState.posts + r.data.items,
                     nextCursor = r.data.nextCursor,
                 )
-                is ApiResult.Failure -> uiState = uiState.copy(isLoadingMore = false, error = r.error.userMessage)
+                is ApiResult.Failure -> uiState = uiState.copy(isLoadingMore = false, loadMoreError = r.error.userMessage)
             }
         }
     }
