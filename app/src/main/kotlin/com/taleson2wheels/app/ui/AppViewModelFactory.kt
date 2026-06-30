@@ -6,6 +6,7 @@ import com.taleson2wheels.app.di.AppContainer
 import com.taleson2wheels.app.ui.auth.ChangePasswordViewModel
 import com.taleson2wheels.app.ui.auth.ForgotPasswordViewModel
 import com.taleson2wheels.app.ui.auth.LoginViewModel
+import com.taleson2wheels.app.ui.achievements.AchievementsViewModel
 import com.taleson2wheels.app.ui.auth.RegisterViewModel
 import com.taleson2wheels.app.ui.content.CrewViewModel
 import com.taleson2wheels.app.ui.content.GuidelinesViewModel
@@ -61,6 +62,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(LeaderboardViewModel::class.java) ->
             LeaderboardViewModel(container.ridersRepository) as T
+
+        modelClass.isAssignableFrom(AchievementsViewModel::class.java) ->
+            AchievementsViewModel(container.catalogRepository) as T
 
         modelClass.isAssignableFrom(RiderProfileViewModel::class.java) ->
             RiderProfileViewModel(container.ridersRepository) as T

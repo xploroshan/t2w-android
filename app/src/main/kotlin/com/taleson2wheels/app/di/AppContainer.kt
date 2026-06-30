@@ -6,8 +6,11 @@ import com.taleson2wheels.app.BuildConfig
 import com.taleson2wheels.app.data.remote.AuthInterceptor
 import com.taleson2wheels.app.data.remote.TokenAuthenticator
 import com.taleson2wheels.app.data.location.LocationTracker
+import com.taleson2wheels.app.data.push.NoOpPushTokenProvider
+import com.taleson2wheels.app.data.push.PushTokenProvider
 import com.taleson2wheels.app.data.remote.api.AuthApi
 import com.taleson2wheels.app.data.remote.api.ContentApi
+import com.taleson2wheels.app.data.remote.api.DevicesApi
 import com.taleson2wheels.app.data.remote.api.GarageApi
 import com.taleson2wheels.app.data.remote.api.LiveApi
 import com.taleson2wheels.app.data.remote.api.RidersApi
@@ -15,6 +18,7 @@ import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.remote.api.UploadApi
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
+import com.taleson2wheels.app.data.repository.DevicesRepository
 import com.taleson2wheels.app.data.repository.GarageRepository
 import com.taleson2wheels.app.data.repository.LiveRepository
 import com.taleson2wheels.app.data.repository.RidersRepository
@@ -101,13 +105,27 @@ class AppContainer(context: Context) {
     val contentApi: ContentApi = retrofit.create(ContentApi::class.java)
     val uploadApi: UploadApi = retrofit.create(UploadApi::class.java)
     val liveApi: LiveApi = retrofit.create(LiveApi::class.java)
+    val devicesApi: DevicesApi = retrofit.create(DevicesApi::class.java)
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private val deviceId: String = runCatching {
         Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
     }.getOrNull().orEmpty().ifBlank { "unknown-device" }
 
-    val authRepository = AuthRepository(authApi, session, json, deviceId)
+    val devicesRepository = DevicesRepository(devicesApi, json)
+
+    /** Push-token source. Swap for an FCM-backed impl once Firebase is wired. */
+    val pushTokenProvider: PushTokenProvider = NoOpPushTokenProvider()
+
+    val authRepository = AuthRepository(
+        authApi = authApi,
+        session = session,
+        json = json,
+        deviceId = deviceId,
+        devicesRepository = devicesRepository,
+        pushTokenProvider = pushTokenProvider,
+        appBuild = BuildConfig.VERSION_NAME,
+    )
     val ridesRepository = RidesRepository(ridesApi, json)
     val ridersRepository = RidersRepository(ridersApi, json)
     val catalogRepository = CatalogRepository(contentApi, json)

@@ -23,6 +23,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.taleson2wheels.app.ui.achievements.AchievementsScreen
 import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
 import com.taleson2wheels.app.ui.garage.GarageScreen
@@ -49,6 +50,7 @@ object Routes {
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
     const val GARAGE = "garage"
+    const val ACHIEVEMENTS = "achievements"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
@@ -166,7 +168,11 @@ fun MainScreen(factory: AppViewModelFactory) {
                 LeaderboardScreen(
                     factory = factory,
                     onRiderClick = { id -> navController.navigate(Routes.riderProfile(id)) },
+                    onOpenAchievements = { navController.navigate(Routes.ACHIEVEMENTS) },
                 )
+            }
+            composable(Routes.ACHIEVEMENTS) {
+                AchievementsScreen(factory = factory, onBack = { navController.popBackStack() })
             }
             composable(
                 route = Routes.RIDER_PROFILE,
