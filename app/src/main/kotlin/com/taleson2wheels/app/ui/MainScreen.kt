@@ -25,14 +25,17 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.taleson2wheels.app.ui.achievements.AchievementsScreen
+import com.taleson2wheels.app.ui.blogs.BlogComposerScreen
 import com.taleson2wheels.app.ui.blogs.BlogDetailScreen
 import com.taleson2wheels.app.ui.blogs.BlogsScreen
 import com.taleson2wheels.app.ui.content.CrewScreen
 import com.taleson2wheels.app.ui.content.GuidelinesScreen
 import com.taleson2wheels.app.ui.garage.GarageScreen
 import com.taleson2wheels.app.ui.home.HomeScreen
+import com.taleson2wheels.app.ui.live.LiveInsightsScreen
 import com.taleson2wheels.app.ui.live.LiveRideScreen
 import com.taleson2wheels.app.ui.notifications.NotificationsScreen
+import com.taleson2wheels.app.ui.profile.ProfileEditScreen
 import com.taleson2wheels.app.ui.profile.ProfileScreen
 import com.taleson2wheels.app.ui.riders.LeaderboardScreen
 import com.taleson2wheels.app.ui.riders.RiderProfileScreen
@@ -51,18 +54,22 @@ object Routes {
     const val RIDE_REGISTER = "rides/{rideId}/register?title={title}"
     const val RIDE_POSTS = "rides/{rideId}/posts"
     const val RIDE_LIVE = "rides/{rideId}/live"
+    const val RIDE_INSIGHTS = "rides/{rideId}/insights"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val BLOG_DETAIL = "stories/{blogId}"
+    const val BLOG_COMPOSE = "stories/compose"
     const val GUIDELINES = "guidelines"
     const val CREW = "crew"
     const val GARAGE = "garage"
     const val ACHIEVEMENTS = "achievements"
     const val NOTIFICATIONS = "notifications"
+    const val EDIT_PROFILE = "edit-profile"
     const val CHANGE_PASSWORD = "change-password"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
     fun rideLive(id: String) = "rides/$id/live"
+    fun rideInsights(id: String) = "rides/$id/insights"
     fun riderProfile(id: String) = "riders/$id"
     fun blogDetail(id: String) = "stories/$id"
 }
@@ -141,6 +148,17 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onRegister = { id, title -> navController.navigate(Routes.rideRegister(id, title)) },
                     onOpenPosts = { id -> navController.navigate(Routes.ridePosts(id)) },
                     onOpenLive = { id -> navController.navigate(Routes.rideLive(id)) },
+                    onOpenInsights = { id -> navController.navigate(Routes.rideInsights(id)) },
+                )
+            }
+            composable(
+                route = Routes.RIDE_INSIGHTS,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                LiveInsightsScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
@@ -185,6 +203,13 @@ fun MainScreen(factory: AppViewModelFactory) {
                 BlogsScreen(
                     factory = factory,
                     onBlogClick = { id -> navController.navigate(Routes.blogDetail(id)) },
+                    onCompose = { navController.navigate(Routes.BLOG_COMPOSE) },
+                )
+            }
+            composable(Routes.BLOG_COMPOSE) {
+                BlogComposerScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(
@@ -225,8 +250,12 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onOpenGuidelines = { navController.navigate(Routes.GUIDELINES) },
                     onOpenCrew = { navController.navigate(Routes.CREW) },
                     onOpenGarage = { navController.navigate(Routes.GARAGE) },
+                    onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                 )
+            }
+            composable(Routes.EDIT_PROFILE) {
+                ProfileEditScreen(factory = factory, onBack = { navController.popBackStack() })
             }
             composable(Routes.GARAGE) {
                 GarageScreen(factory = factory, onBack = { navController.popBackStack() })

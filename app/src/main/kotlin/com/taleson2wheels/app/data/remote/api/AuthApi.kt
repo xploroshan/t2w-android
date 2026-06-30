@@ -7,6 +7,7 @@ import com.taleson2wheels.app.data.remote.dto.EmailRequest
 import com.taleson2wheels.app.data.remote.dto.LoginRequest
 import com.taleson2wheels.app.data.remote.dto.LogoutResponse
 import com.taleson2wheels.app.data.remote.dto.MeResponse
+import com.taleson2wheels.app.data.remote.dto.ProfileUpdateRequest
 import com.taleson2wheels.app.data.remote.dto.RefreshRequest
 import com.taleson2wheels.app.data.remote.dto.RefreshSuccess
 import com.taleson2wheels.app.data.remote.dto.RegisterRequest
@@ -15,6 +16,7 @@ import com.taleson2wheels.app.data.remote.dto.SimpleResponse
 import com.taleson2wheels.app.data.remote.dto.VerifyOtpRequest
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 
 /** `/api/v1/auth/…` — bearer-token auth flows. See T2W docs/openapi-v1.yaml. */
@@ -35,6 +37,9 @@ interface AuthApi {
 
     @GET("api/v1/auth/me")
     suspend fun me(): MeResponse
+
+    @PATCH("api/v1/auth/me")
+    suspend fun updateProfile(@Body body: ProfileUpdateRequest): MeResponse
 
     // ── Account verification / recovery ──────────────────────────────────────
 

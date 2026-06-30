@@ -42,11 +42,14 @@ fun ProfileScreen(
     onOpenGuidelines: () -> Unit,
     onOpenCrew: () -> Unit,
     onOpenGarage: () -> Unit,
+    onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(factory = factory),
 ) {
     val state = viewModel.uiState
+    // Re-fetch when the screen re-enters composition (e.g. returning from edit).
+    androidx.compose.runtime.LaunchedEffect(Unit) { viewModel.refresh() }
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -74,6 +77,7 @@ fun ProfileScreen(
                 onOpenGuidelines = onOpenGuidelines,
                 onOpenCrew = onOpenCrew,
                 onOpenGarage = onOpenGarage,
+                onEditProfile = onEditProfile,
                 onChangePassword = onChangePassword,
                 modifier = Modifier.padding(innerPadding),
             )
@@ -87,6 +91,7 @@ private fun ProfileBody(
     onOpenGuidelines: () -> Unit,
     onOpenCrew: () -> Unit,
     onOpenGarage: () -> Unit,
+    onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -123,6 +128,7 @@ private fun ProfileBody(
         }
 
         item { SectionHeader("More") }
+        item { LinkRow("Edit profile", onEditProfile) }
         item { LinkRow("Ride guidelines", onOpenGuidelines) }
         item { LinkRow("Crew", onOpenCrew) }
         item { LinkRow("Change password", onChangePassword) }

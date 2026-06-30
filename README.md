@@ -146,6 +146,14 @@ To run against a local backend, start the Next.js app (`npm run dev` in the
 `localhost`. Cleartext is permitted only for `10.0.2.2`/`localhost` via
 `res/xml/network_security_config.xml`; all other traffic is HTTPS-only.
 
+### Production config (Maps, push, crash reporting, signing)
+
+All optional — the app builds and runs with them missing. When you're ready to
+ship, [`docs/SETUP_SECRETS.md`](docs/SETUP_SECRETS.md) is a step-by-step,
+beginner-friendly walkthrough for the Google Maps key, Firebase
+`google-services.json` (FCM), Sentry DSN, and the release upload keystore. Copy
+`secrets.properties.example` / `keystore.properties.example` to get started.
+
 ---
 
 ## Roadmap

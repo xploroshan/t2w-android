@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.ksp)
 }
 
 // Base URL for the T2W /api/v1 mobile namespace. Override per-machine by adding
@@ -140,6 +141,11 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
 
+    // Offline cache (Room + KSP processor)
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
     // Test
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.serialization.json)
@@ -147,4 +153,6 @@ dependencies {
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.compose.ui.test.junit4)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

@@ -11,10 +11,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -37,6 +42,7 @@ fun BlogsScreen(
     factory: AppViewModelFactory,
     onBlogClick: (String) -> Unit,
     modifier: Modifier = Modifier,
+    onCompose: () -> Unit = {},
     viewModel: BlogsViewModel = viewModel(factory = factory),
 ) {
     val state = viewModel.uiState
@@ -51,6 +57,15 @@ fun BlogsScreen(
                 ),
             )
         },
+        floatingActionButton = {
+            if (state.canCompose) {
+                ExtendedFloatingActionButton(
+                    onClick = onCompose,
+                    icon = { Icon(Icons.Filled.Edit, contentDescription = null) },
+                    text = { Text("Write") },
+                )
+            }
+        },
     ) { innerPadding ->
         when {
             state.isLoading && state.blogs.isEmpty() -> LoadingView(Modifier.padding(innerPadding))
@@ -58,18 +73,24 @@ fun BlogsScreen(
                 ErrorView(state.error, viewModel::refresh, Modifier.padding(innerPadding))
             state.blogs.isEmpty() ->
                 ErrorView("No stories yet. Check back soon.", viewModel::refresh, Modifier.padding(innerPadding))
-            else -> LazyColumn(
+            else -> PullToRefreshBox(
+                isRefreshing = state.isLoading,
+                onRefresh = viewModel::refresh,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                items(state.blogs, key = { it.id }) { blog ->
-                    BlogCardItem(blog = blog, onClick = { onBlogClick(blog.id) })
-                }
-                if (state.canLoadMore) {
-                    item(key = "load-more") {
-                        LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                        LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    items(state.blogs, key = { it.id }) { blog ->
+                        BlogCardItem(blog = blog, onClick = { onBlogClick(blog.id) })
+                    }
+                    if (state.canLoadMore) {
+                        item(key = "load-more") {
+                            LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
+                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                        }
                     }
                 }
             }

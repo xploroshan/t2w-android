@@ -5,6 +5,9 @@ import android.provider.Settings
 import com.taleson2wheels.app.BuildConfig
 import com.taleson2wheels.app.data.remote.AuthInterceptor
 import com.taleson2wheels.app.data.remote.TokenAuthenticator
+import com.taleson2wheels.app.data.local.AppDatabase
+import com.taleson2wheels.app.data.local.ResponseCache
+import com.taleson2wheels.app.data.local.RoomCacheStore
 import com.taleson2wheels.app.data.push.NoOpPushTokenProvider
 import com.taleson2wheels.app.data.push.PushTokenProvider
 import com.taleson2wheels.app.data.remote.api.AuthApi
@@ -114,6 +117,10 @@ class AppContainer(context: Context) {
         Settings.Secure.getString(appContext.contentResolver, Settings.Secure.ANDROID_ID)
     }.getOrNull().orEmpty().ifBlank { "unknown-device" }
 
+    // Local store backing the offline response cache.
+    private val database = AppDatabase.build(appContext)
+    val responseCache = ResponseCache(RoomCacheStore(database.cachedResponses()), json)
+
     val devicesRepository = DevicesRepository(devicesApi, json)
 
     /** Push-token source. Swap for an FCM-backed impl once Firebase is wired. */
@@ -128,7 +135,7 @@ class AppContainer(context: Context) {
         pushTokenProvider = pushTokenProvider,
         appBuild = BuildConfig.VERSION_NAME,
     )
-    val ridesRepository = RidesRepository(ridesApi, json)
+    val ridesRepository = RidesRepository(ridesApi, json, responseCache)
     val ridersRepository = RidersRepository(ridersApi, json)
     val catalogRepository = CatalogRepository(contentApi, json)
     val uploadRepository = UploadRepository(uploadApi, json)

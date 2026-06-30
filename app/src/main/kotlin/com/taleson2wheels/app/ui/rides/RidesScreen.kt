@@ -13,6 +13,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -69,19 +70,25 @@ fun RidesScreen(
                     modifier = Modifier.padding(innerPadding),
                 )
 
-            else -> LazyColumn(
+            else -> PullToRefreshBox(
+                isRefreshing = state.isLoading,
+                onRefresh = viewModel::refresh,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items(state.rides, key = { it.id }) { ride ->
-                    RideCardItem(ride = ride, onClick = { onRideClick(ride.id) })
-                }
-                if (state.canLoadMore) {
-                    item(key = "load-more") {
-                        // Trigger the next page when the footer scrolls into view.
-                        LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                        LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.rides, key = { it.id }) { ride ->
+                        RideCardItem(ride = ride, onClick = { onRideClick(ride.id) })
+                    }
+                    if (state.canLoadMore) {
+                        item(key = "load-more") {
+                            // Trigger the next page when the footer scrolls into view.
+                            LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
+                            LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                        }
                     }
                 }
             }

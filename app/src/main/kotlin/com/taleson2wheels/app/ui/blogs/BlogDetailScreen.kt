@@ -30,7 +30,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.SubcomposeAsyncImage
+import com.taleson2wheels.app.ui.common.ZoomableAsyncImage
 import com.taleson2wheels.app.data.remote.dto.BlogCard
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
@@ -84,13 +84,11 @@ private fun BlogDetailBody(blog: BlogCard, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState()),
     ) {
         if (!blog.coverImage.isNullOrBlank()) {
-            SubcomposeAsyncImage(
-                model = blog.coverImage,
+            ZoomableAsyncImage(
+                url = blog.coverImage,
                 contentDescription = blog.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f),
-                loading = {},
-                error = {},
             )
         }
         Column(
