@@ -7,6 +7,7 @@ import com.taleson2wheels.app.data.remote.dto.EmailRequest
 import com.taleson2wheels.app.data.remote.dto.LoginRequest
 import com.taleson2wheels.app.data.remote.dto.RefreshRequest
 import com.taleson2wheels.app.data.remote.dto.RegisterRequest
+import com.taleson2wheels.app.data.remote.dto.ProfileUpdateRequest
 import com.taleson2wheels.app.data.remote.dto.ResetPasswordRequest
 import com.taleson2wheels.app.data.remote.dto.UserDto
 import com.taleson2wheels.app.data.remote.dto.VerifyOtpRequest
@@ -78,6 +79,9 @@ class AuthRepository(
 
     suspend fun currentUser(): ApiResult<UserDto> =
         safeApiCall(json) { authApi.me().user }
+
+    suspend fun updateProfile(request: ProfileUpdateRequest): ApiResult<UserDto> =
+        safeApiCall(json) { authApi.updateProfile(request).user }
 
     // ── Email verification (signup) ──────────────────────────────────────────
 
