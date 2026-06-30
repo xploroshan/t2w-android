@@ -8,7 +8,6 @@ import com.taleson2wheels.app.data.remote.TokenAuthenticator
 import com.taleson2wheels.app.data.local.AppDatabase
 import com.taleson2wheels.app.data.local.ResponseCache
 import com.taleson2wheels.app.data.local.RoomCacheStore
-import com.taleson2wheels.app.data.location.LocationTracker
 import com.taleson2wheels.app.data.push.NoOpPushTokenProvider
 import com.taleson2wheels.app.data.push.PushTokenProvider
 import com.taleson2wheels.app.data.remote.api.AuthApi
@@ -143,7 +142,4 @@ class AppContainer(context: Context) {
     val garageRepository = GarageRepository(garageApi, json)
     val liveRepository = LiveRepository(liveApi, json)
     val blogsRepository = BlogsRepository(blogsApi, json)
-
-    /** App-scoped GPS tracker for the live-ride screen (framework LocationManager). */
-    val locationTracker = LocationTracker(appContext)
 }

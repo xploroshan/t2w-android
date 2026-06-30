@@ -40,6 +40,11 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        // Google Maps key for the live-ride map. Supply via secrets.properties
+        // (MAPS_API_KEY=...) or -PMAPS_API_KEY=...; empty by default so the build
+        // works without it (the map just won't render). See docs/HARDENING.md.
+        manifestPlaceholders["MAPS_API_KEY"] = secretOr("MAPS_API_KEY", "")
     }
 
     signingConfigs {
@@ -131,6 +136,10 @@ dependencies {
     // Token storage + image loading
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.coil.compose)
+
+    // Maps — live-ride map (renders once a Maps API key is supplied)
+    implementation(libs.maps.compose)
+    implementation(libs.play.services.maps)
 
     // Offline cache (Room + KSP processor)
     implementation(libs.androidx.room.runtime)

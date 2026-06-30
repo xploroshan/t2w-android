@@ -57,7 +57,16 @@ a `BuildConfig` field (empty default → disabled), and gate init on a non-blank
 DSN so debug/unconfigured builds stay silent. (The API backend already has
 Sentry configured.)
 
-### Background location for live rides
-The live-ride screen streams GPS while in the foreground. For background
-tracking during a ride, add a foreground `Service` with
-`FOREGROUND_SERVICE_LOCATION` and move `LocationTracker` into it.
+### Google Maps key (live-ride map)
+The live-ride screen renders a Google Map (rider markers + the lead path) once a
+**Maps SDK for Android** key is supplied; without one the map area stays blank
+and the rest of the screen is unaffected.
+
+1. In Google Cloud Console, enable **Maps SDK for Android** and create an API key
+   (restrict it to the app's package name + signing SHA-1).
+2. Add it to the git-ignored `secrets.properties` at the repo root:
+   ```properties
+   MAPS_API_KEY=AIza…
+   ```
+   (or pass `-PMAPS_API_KEY=AIza…`). It's injected into the manifest via the
+   `MAPS_API_KEY` placeholder; empty by default so the build works without it.

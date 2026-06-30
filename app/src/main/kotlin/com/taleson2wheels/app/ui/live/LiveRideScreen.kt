@@ -2,6 +2,7 @@ package com.taleson2wheels.app.ui.live
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,8 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.taleson2wheels.app.data.location.LiveLocationService
+import com.taleson2wheels.app.data.location.LiveShareController
 import com.taleson2wheels.app.data.remote.dto.LiveMetrics
 import com.taleson2wheels.app.data.remote.dto.LiveRiderPosition
 import com.taleson2wheels.app.ui.AppViewModelFactory
@@ -60,21 +65,30 @@ fun LiveRideScreen(
     val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
 
+    val activeShareRide by LiveShareController.activeRideId.collectAsState()
+    val uploaded by LiveShareController.uploaded.collectAsState()
+    val isSharing = activeShareRide == rideId
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
     ) { grants ->
-        if (grants.values.any { it }) viewModel.startSharing(rideId)
+        val locationGranted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+            grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (locationGranted) LiveLocationService.start(context, rideId)
     }
 
     fun requestShare() {
         val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         if (granted) {
-            viewModel.startSharing(rideId)
+            LiveLocationService.start(context, rideId)
         } else {
-            permissionLauncher.launch(
-                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-            )
+            val perms = buildList {
+                add(Manifest.permission.ACCESS_FINE_LOCATION)
+                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            permissionLauncher.launch(perms.toTypedArray())
         }
     }
 
@@ -114,8 +128,11 @@ fun LiveRideScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item { StatusBanner(state) }
+                if (state.riders.isNotEmpty()) {
+                    item { LiveMapCard(state.riders, state.liveState?.leadPath ?: emptyList()) }
+                }
                 state.metrics?.let { item { MetricsCard(it) } }
-                item { ShareCard(state, ::requestShare, onStop = { viewModel.stopSharing(rideId) }) }
+                item { ShareCard(isSharing, uploaded, ::requestShare, onStop = { LiveLocationService.stop(context) }) }
                 if (state.isLive && !state.joined) {
                     item {
                         Button(
@@ -186,21 +203,20 @@ private fun Metric(label: String, value: String, modifier: Modifier = Modifier) 
 }
 
 @Composable
-private fun ShareCard(state: LiveUiState, onShare: () -> Unit, onStop: () -> Unit) {
+private fun ShareCard(isSharing: Boolean, uploaded: Int, onShare: () -> Unit, onStop: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Share my location", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
-            if (state.isSharing) {
+            if (isSharing) {
                 Text(
-                    "Sharing live · ${state.uploadedPoints} sent" +
-                        if (state.bufferedPoints > 0) " · ${state.bufferedPoints} queued" else "",
+                    "Sharing live · $uploaded sent · keeps running in the background",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop sharing") }
             } else {
                 Text(
-                    "Broadcast your position to the group while the ride is live.",
+                    "Broadcast your position to the group while the ride is live. Tracking continues even with the screen off.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
