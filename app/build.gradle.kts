@@ -57,6 +57,23 @@ run {
     }
 }
 
+// The live-ride Google Map silently renders blank without a Maps key. That's an
+// intentional, documented optional config (docs/HARDENING.md), so a keyless
+// release still builds — but warn loudly so a real release isn't shipped with a
+// broken map by accident. Unlike the keystore this is NOT a hard fail: a blank
+// map is graceful degradation, not an undistributable/spoofable artifact.
+val mapsApiKey = secretOr("MAPS_API_KEY", "")
+run {
+    val buildingRelease = gradle.startParameter.taskNames.any { it.contains("elease") }
+    if (buildingRelease && mapsApiKey.isBlank()) {
+        logger.warn(
+            "\n⚠️  RELEASE build with no MAPS_API_KEY — the live-ride map will render blank. " +
+                "Provide it via secrets.properties (MAPS_API_KEY=...) or -PMAPS_API_KEY=... before " +
+                "shipping. See docs/HARDENING.md.\n",
+        )
+    }
+}
+
 android {
     namespace = "com.taleson2wheels.app"
     compileSdk = 35
@@ -73,8 +90,9 @@ android {
 
         // Google Maps key for the live-ride map. Supply via secrets.properties
         // (MAPS_API_KEY=...) or -PMAPS_API_KEY=...; empty by default so the build
-        // works without it (the map just won't render). See docs/HARDENING.md.
-        manifestPlaceholders["MAPS_API_KEY"] = secretOr("MAPS_API_KEY", "")
+        // works without it (the map just won't render — a release with it empty
+        // gets a loud warning above). See docs/HARDENING.md.
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     signingConfigs {

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG-ONLY override of the main (HTTPS-only) network security config.
+
+  The debug API base URL can be pointed at an http:// LAN dev box for
+  physical-device testing (T2W_API_BASE_URL_DEBUG=http://192.168.x.x:3000/ — see
+  docs/SIDELOAD.md / README), but Android's network-security-config can only
+  allowlist exact hosts, not RFC1918 ranges, so the main config's loopback-only
+  list (10.0.2.2 / localhost / 127.0.0.1) blocks any other LAN IP with a
+  non-obvious CLEARTEXT_NOT_PERMITTED error. This overlay permits cleartext
+  globally for the DEBUG build so that workflow works out of the box.
+
+  This file lives in src/debug and is NEVER part of a release build — the release
+  uses the strict src/main config (cleartext forbidden), so production stays
+  HTTPS-only.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
