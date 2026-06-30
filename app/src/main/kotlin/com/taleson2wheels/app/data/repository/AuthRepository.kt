@@ -11,6 +11,8 @@ import com.taleson2wheels.app.data.remote.dto.ResetPasswordRequest
 import com.taleson2wheels.app.data.remote.dto.UserDto
 import com.taleson2wheels.app.data.remote.dto.VerifyOtpRequest
 import com.taleson2wheels.app.data.remote.safeApiCall
+import com.taleson2wheels.app.data.push.NoOpPushTokenProvider
+import com.taleson2wheels.app.data.push.PushTokenProvider
 import com.taleson2wheels.app.data.session.SessionStore
 import com.taleson2wheels.app.data.session.Tokens
 import kotlinx.coroutines.flow.StateFlow
@@ -18,25 +20,34 @@ import kotlinx.serialization.json.Json
 
 /**
  * Owns the authentication lifecycle: signing in/registering (which persists the
- * token pair), exposing the reactive session, and signing out.
+ * token pair), exposing the reactive session, and signing out. After a
+ * successful auth it best-effort registers this device's push token, and
+ * deregisters it on logout — both no-ops until a [PushTokenProvider] yields a
+ * token (default [NoOpPushTokenProvider]).
  */
 class AuthRepository(
     private val authApi: AuthApi,
     private val session: SessionStore,
     private val json: Json,
     private val deviceId: String,
+    private val devicesRepository: DevicesRepository? = null,
+    private val pushTokenProvider: PushTokenProvider = NoOpPushTokenProvider(),
+    private val appBuild: String = "",
 ) {
     /** Reactive session — UI observes this to gate login vs. the app shell. */
     val tokens: StateFlow<Tokens?> = session.tokens
 
-    suspend fun login(email: String, password: String): ApiResult<UserDto> =
-        safeApiCall(json) {
+    suspend fun login(email: String, password: String): ApiResult<UserDto> {
+        val result = safeApiCall(json) {
             val res = authApi.login(
                 LoginRequest(email = email.trim().lowercase(), password = password, deviceId = deviceId),
             )
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }
+        if (result is ApiResult.Success) syncPushDevice()
+        return result
+    }
 
     suspend fun register(
         name: String,
@@ -45,20 +56,24 @@ class AuthRepository(
         phone: String? = null,
         city: String? = null,
         ridingExperience: String? = null,
-    ): ApiResult<UserDto> = safeApiCall(json) {
-        val res = authApi.register(
-            RegisterRequest(
-                name = name.trim(),
-                email = email.trim().lowercase(),
-                password = password,
-                phone = phone,
-                city = city,
-                ridingExperience = ridingExperience,
-                deviceId = deviceId,
-            ),
-        )
-        session.save(Tokens(res.accessToken, res.refreshToken))
-        res.user
+    ): ApiResult<UserDto> {
+        val result = safeApiCall(json) {
+            val res = authApi.register(
+                RegisterRequest(
+                    name = name.trim(),
+                    email = email.trim().lowercase(),
+                    password = password,
+                    phone = phone,
+                    city = city,
+                    ridingExperience = ridingExperience,
+                    deviceId = deviceId,
+                ),
+            )
+            session.save(Tokens(res.accessToken, res.refreshToken))
+            res.user
+        }
+        if (result is ApiResult.Success) syncPushDevice()
+        return result
     }
 
     suspend fun currentUser(): ApiResult<UserDto> =
@@ -97,9 +112,24 @@ class AuthRepository(
 
     /** Best-effort server-side revoke, then always clear the local session. */
     suspend fun logout() {
+        unsyncPushDevice()
         session.peekRefreshToken()?.let { token ->
             runCatching { authApi.logout(RefreshRequest(token)) }
         }
         session.clear()
+    }
+
+    /** Register this device's push token after a successful auth (best-effort). */
+    private suspend fun syncPushDevice() {
+        val repo = devicesRepository ?: return
+        val token = runCatching { pushTokenProvider.currentToken() }.getOrNull() ?: return
+        runCatching { repo.register(token = token, deviceId = deviceId, appBuild = appBuild.ifBlank { null }) }
+    }
+
+    /** Deregister this device's push token on logout (best-effort, idempotent). */
+    private suspend fun unsyncPushDevice() {
+        val repo = devicesRepository ?: return
+        val token = runCatching { pushTokenProvider.currentToken() }.getOrNull() ?: return
+        runCatching { repo.deregister(token) }
     }
 }
