@@ -145,8 +145,16 @@ const reviewed = await pipeline(
   },
 )
 
-const summaries = reviewed.map((r) => ({ dimension: r.dimension, summary: r.summary }))
-const all = reviewed.flatMap((r) => (r.findings || []))
+// A pipeline stage that throws (e.g. a finder hit a transient "Overloaded"
+// API error) drops that item to null and skips its verify stage. Filter those
+// out before aggregating, and surface which dimensions were lost so reduced
+// coverage is never silent.
+const ok = reviewed.filter(Boolean)
+const droppedDims = DIMENSIONS.filter((_, i) => !reviewed[i]).map((d) => d.key)
+if (droppedDims.length) log(`⚠️ ${droppedDims.length} dimension(s) dropped (finder failed, not reviewed): ${droppedDims.join(', ')}`)
+
+const summaries = ok.map((r) => ({ dimension: r.dimension, summary: r.summary }))
+const all = ok.flatMap((r) => (r.findings || []))
 const effSev = (f) => (f.verdict && f.verdict.correctedSeverity) || f.severity
 const bySev = (a, b) => sevRank[effSev(a)] - sevRank[effSev(b)]
 
@@ -161,6 +169,7 @@ return {
   scope: SCOPE,
   depth: DEPTH,
   counts: { raw: all.length, confirmed: confirmed.length, uncertain: uncertain.length, refuted: refutedCount },
+  droppedDimensions: droppedDims,
   dimensionSummaries: summaries,
   confirmed,
   uncertain,
