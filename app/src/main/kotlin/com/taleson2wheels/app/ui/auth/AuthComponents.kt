@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -14,25 +13,36 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.GradientButton
+import com.taleson2wheels.app.ui.theme.T2WAccent
+import com.taleson2wheels.app.ui.theme.T2WBorder
 
+/**
+ * Shared scaffold for the secondary auth screens (register, reset, change
+ * password). Sits on the branded near-black background with a transparent top
+ * bar so the form floats on the same canvas as the rest of the app; the body
+ * scrolls and lifts above the IME.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthScaffold(
@@ -43,6 +53,7 @@ fun AuthScaffold(
 ) {
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = { Text(title) },
@@ -54,27 +65,33 @@ fun AuthScaffold(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            content(Modifier.fillMaxWidth())
+        BrandBackground(Modifier.padding(innerPadding)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                content(Modifier.fillMaxWidth())
+            }
         }
     }
 }
 
+/**
+ * Branded auth text field — the website's `.input-field`: surface-light fill,
+ * accent focus ring, rounded. Mirrors [com.taleson2wheels.app.ui.components.InputField]
+ * but keeps the IME-action callback the multi-step auth flows rely on.
+ */
 @Composable
 fun AuthField(
     value: String,
@@ -93,12 +110,23 @@ fun AuthField(
         label = { Text(label) },
         singleLine = true,
         enabled = enabled,
-        visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+        visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
         keyboardActions = KeyboardActions(
             onNext = { onImeAction() },
             onDone = { onImeAction() },
             onGo = { onImeAction() },
+        ),
+        shape = MaterialTheme.shapes.small,
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            errorContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedBorderColor = T2WAccent,
+            unfocusedBorderColor = T2WBorder,
+            cursorColor = T2WAccent,
+            focusedLabelColor = T2WAccent,
         ),
         modifier = modifier,
     )
@@ -120,6 +148,7 @@ fun AuthErrorText(message: String?, modifier: Modifier = Modifier) {
 /** Tap target for inline "link" text. */
 fun Modifier.clickableText(onClick: () -> Unit): Modifier = this.then(Modifier.clickable(onClick = onClick))
 
+/** Primary auth CTA — the accent→red gradient pill, shared with the rest of the app. */
 @Composable
 fun AuthPrimaryButton(
     text: String,
@@ -128,15 +157,11 @@ fun AuthPrimaryButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier.height(52.dp)) {
-        if (loading) {
-            CircularProgressIndicator(
-                color = MaterialTheme.colorScheme.onPrimary,
-                strokeWidth = 2.dp,
-                modifier = Modifier.height(22.dp),
-            )
-        } else {
-            Text(text)
-        }
-    }
+    GradientButton(
+        text = text,
+        onClick = onClick,
+        enabled = enabled,
+        loading = loading,
+        modifier = modifier,
+    )
 }
