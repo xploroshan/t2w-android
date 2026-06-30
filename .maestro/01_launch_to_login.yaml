@@ -1,0 +1,20 @@
+# Flow 1 — Cold launch lands on the login screen.
+#
+# A fresh install has no persisted session, so T2WApp's auth gate
+# (tokens == null) renders AuthFlow -> LoginScreen. We assert on the on-screen
+# copy from res/values/strings.xml (login_title / login_subtitle) plus the
+# field and button labels. Everything is text-based so the flow survives
+# layout/restyle changes.
+appId: com.taleson2wheels.app
+---
+- clearState          # wipe the DataStore session so we always start signed-out
+- launchApp
+# login_title doubles as the app name ("Tales on 2 Wheels").
+- assertVisible: "Tales on 2 Wheels"
+- assertVisible: "Sign in to ride with the crew"
+- assertVisible: "Email"
+- assertVisible: "Password"
+- assertVisible: "Sign in"
+# Secondary affordances rendered by LoginScreen.
+- assertVisible: "Forgot password?"
+- assertVisible: "New rider? Create an account"

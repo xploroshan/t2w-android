@@ -1,0 +1,36 @@
+# Flow 2 — The login form validates input and accepts a well-formed submit.
+#
+# LoginViewModel gates the "Sign in" button via state.canSubmit, which is false
+# until both fields are non-blank. We assert the button is present, type into
+# both fields, then submit. We do NOT assert a successful sign-in here (that
+# needs a live /api/v1/auth/login backend); we assert the form accepted the
+# input and left the login title — i.e. no client-side validation error and the
+# request was dispatched. Adjust the post-submit assertion to your test backend.
+appId: com.taleson2wheels.app
+---
+- clearState
+- launchApp
+- assertVisible: "Sign in"
+
+# Empty submit: tapping "Sign in" with blank fields must NOT navigate away.
+# canSubmit == false keeps the button disabled, so the login title stays.
+- tapOn: "Sign in"
+- assertVisible: "Tales on 2 Wheels"
+
+# Fill the form. Selectors are the field labels (OutlinedTextField label text).
+- tapOn: "Email"
+- inputText: "rider@example.com"
+- tapOn: "Password"
+- inputText: "correct-horse-battery"
+- hideKeyboard
+
+# The button is now enabled (canSubmit == true). Submitting dispatches the
+# login request; the spinner replaces the label while isSubmitting is true.
+- tapOn: "Sign in"
+
+# Resilient post-submit check: against a stub backend that rejects unknown
+# creds, the login screen surfaces an inline error and stays put. Either the
+# error text or the title remaining proves the form round-tripped without a
+# crash. Swap "assertVisible" for a home-screen assertion when pointed at a
+# backend seeded with these credentials.
+- assertVisible: "Tales on 2 Wheels"

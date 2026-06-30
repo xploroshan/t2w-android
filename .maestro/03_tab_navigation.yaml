@@ -1,0 +1,56 @@
+# Flow 3 — Bottom-tab navigation across Home / Rides / Riders / Profile.
+#
+# The tab bar (MainScreen.kt) only exists once signed in, so this flow first
+# authenticates. It expects a backend reachable at the app's API_BASE_URL with a
+# seeded account. Provide credentials via Maestro env vars so no secrets live in
+# the repo:
+#
+#   maestro test -e EMAIL=you@example.com -e PASSWORD=secret \
+#     .maestro/03_tab_navigation.yaml
+#
+# The four destinations are asserted by their on-screen text:
+#   Home    -> TopAppBar "Tales on 2 Wheels" (or "Hi, <name>")
+#   Rides   -> rides_title string "Rides"
+#   Riders  -> LeaderboardScreen TopAppBar "Leaderboard"
+#   Profile -> ProfileScreen TopAppBar "Profile"
+# The persistent tab labels ("Home"/"Rides"/"Riders"/"Profile") double as the
+# NavigationBarItem tap targets and stay visible on every tab.
+appId: com.taleson2wheels.app
+env:
+  EMAIL: "rider@example.com"
+  PASSWORD: "password123"
+---
+- clearState
+- launchApp
+
+# ── Sign in ────────────────────────────────────────────────────────────────
+- assertVisible: "Sign in"
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Sign in"
+
+# Land on Home (startDestination). The bottom bar is now present.
+- assertVisible: "Home"
+- assertVisible: "Rides"
+- assertVisible: "Riders"
+- assertVisible: "Profile"
+
+# ── Rides tab ──────────────────────────────────────────────────────────────
+- tapOn: "Rides"
+- assertVisible: "Rides"          # rides_title TopAppBar
+
+# ── Riders tab (leaderboard) ───────────────────────────────────────────────
+- tapOn: "Riders"
+- assertVisible: "Leaderboard"    # LeaderboardScreen TopAppBar
+
+# ── Profile tab ────────────────────────────────────────────────────────────
+- tapOn: "Profile"
+- assertVisible: "Profile"        # ProfileScreen TopAppBar
+
+# ── Back to Home ───────────────────────────────────────────────────────────
+- tapOn: "Home"
+- assertVisible:
+    text: "Home"
