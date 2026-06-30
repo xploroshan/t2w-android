@@ -1,6 +1,5 @@
 package com.taleson2wheels.app.ui.notifications
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +15,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.DoneAll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +35,8 @@ import com.taleson2wheels.app.data.remote.dto.NotificationDto
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
 import androidx.compose.foundation.background
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,26 +68,28 @@ fun NotificationsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
-                    actionIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
+                    actionIconContentColor = MaterialTheme.colorScheme.primary,
                 ),
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.error != null && state.notifications.isEmpty() ->
-                ErrorView(state.error, viewModel::load, Modifier.padding(innerPadding))
-            state.notifications.isEmpty() -> EmptyNotifications(Modifier.padding(innerPadding))
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(state.notifications, key = { it.id }) { n ->
-                    NotificationRow(n, onClick = { viewModel.markRead(n.id) })
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.error != null && state.notifications.isEmpty() ->
+                    ErrorView(state.error, viewModel::load)
+                state.notifications.isEmpty() -> EmptyNotifications()
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(state.notifications, key = { it.id }) { n ->
+                        NotificationRow(n, onClick = { viewModel.markRead(n.id) })
+                    }
                 }
             }
         }
@@ -101,7 +102,7 @@ private fun EmptyNotifications(modifier: Modifier = Modifier) {
         Text(
             "You're all caught up.",
             style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onBackground,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }
@@ -109,13 +110,13 @@ private fun EmptyNotifications(modifier: Modifier = Modifier) {
 @Composable
 private fun NotificationRow(n: NotificationDto, onClick: () -> Unit) {
     val unread = !n.isRead
-    Card(
-        modifier = Modifier.fillMaxWidth().clickable(enabled = unread, onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (unread) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.surface,
-        ),
+    // BrandCard sits on the same surface read or unread; the accent dot + bold
+    // title carry the unread distinction instead of a lighter container fill.
+    BrandCard(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = if (unread) onClick else null,
     ) {
-        Row(Modifier.fillMaxWidth().padding(16.dp)) {
+        Row(Modifier.fillMaxWidth()) {
             Box(
                 modifier = Modifier
                     .padding(top = 6.dp, end = 12.dp)
@@ -126,17 +127,17 @@ private fun NotificationRow(n: NotificationDto, onClick: () -> Unit) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
                     text = n.title,
-                    style = MaterialTheme.typography.titleLarge,
+                    style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = if (unread) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (unread) FontWeight.Bold else FontWeight.SemiBold,
                 )
                 Text(
                     text = n.message,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 n.date?.let {
-                    Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(it, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
