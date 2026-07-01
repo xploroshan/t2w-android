@@ -38,7 +38,7 @@ class LiveRidePollingTest {
 
     private class FakeLiveApi : LiveApi {
         var stateCalls = 0
-        override suspend fun state(id: String, since: String?): LiveState {
+        override suspend fun state(id: String, since: String?, viewUserId: String?): LiveState {
             stateCalls++
             return LiveState()
         }

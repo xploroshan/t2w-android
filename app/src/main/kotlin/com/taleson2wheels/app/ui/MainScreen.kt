@@ -74,6 +74,7 @@ object Routes {
     const val ADMIN_RIDE_NEW = "admin/rides/new"
     const val ADMIN_RIDE_EDIT = "admin/rides/{rideId}/edit"
     const val ADMIN_PARTICIPATION = "admin/rides/{rideId}/participation?title={title}"
+    const val ADMIN_MAP_EDITOR = "admin/rides/{rideId}/map-editor"
     const val ADMIN_BADGES = "admin/badges"
     const val ADMIN_BADGE_NEW = "admin/badges/new"
     const val ADMIN_BADGE_EDIT = "admin/badges/{badgeId}/edit"
@@ -81,6 +82,7 @@ object Routes {
     fun adminRideEdit(id: String) = "admin/rides/$id/edit"
     fun adminParticipation(id: String, title: String) =
         "admin/rides/$id/participation?title=${Uri.encode(title)}"
+    fun adminMapEditor(id: String) = "admin/rides/$id/map-editor"
     fun adminBadgeEdit(id: String) = "admin/badges/$id/edit"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
@@ -298,6 +300,7 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onCreateRide = { navController.navigate(Routes.ADMIN_RIDE_NEW) },
                     onEditRide = { id -> navController.navigate(Routes.adminRideEdit(id)) },
                     onOpenParticipation = { id, title -> navController.navigate(Routes.adminParticipation(id, title)) },
+                    onOpenMapEditor = { id -> navController.navigate(Routes.adminMapEditor(id)) },
                 )
             }
             composable(Routes.ADMIN_RIDE_NEW) {
@@ -317,6 +320,16 @@ fun MainScreen(factory: AppViewModelFactory) {
                     factory = factory,
                     onBack = { navController.popBackStack() },
                     onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.ADMIN_MAP_EDITOR,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                com.taleson2wheels.app.ui.admin.MapEditorScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(

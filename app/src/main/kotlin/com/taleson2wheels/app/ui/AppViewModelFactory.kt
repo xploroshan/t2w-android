@@ -23,6 +23,7 @@ import com.taleson2wheels.app.ui.admin.AdminBadgeEditorViewModel
 import com.taleson2wheels.app.ui.admin.AdminBadgesViewModel
 import com.taleson2wheels.app.ui.admin.AdminParticipationViewModel
 import com.taleson2wheels.app.ui.admin.AdminRideEditorViewModel
+import com.taleson2wheels.app.ui.admin.MapEditorViewModel
 import com.taleson2wheels.app.ui.admin.AdminRidesViewModel
 import com.taleson2wheels.app.ui.admin.AdminUsersViewModel
 import com.taleson2wheels.app.ui.moderation.BlogModerationViewModel
@@ -136,6 +137,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(AdminRideEditorViewModel::class.java) ->
             AdminRideEditorViewModel(container.ridesRepository, container.adminRepository) as T
+
+        modelClass.isAssignableFrom(MapEditorViewModel::class.java) ->
+            MapEditorViewModel(container.liveRepository, container.mapEditRepository, container.json) as T
 
         modelClass.isAssignableFrom(AdminParticipationViewModel::class.java) ->
             AdminParticipationViewModel(container.adminRepository) as T
