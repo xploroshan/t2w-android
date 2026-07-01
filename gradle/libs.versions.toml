@@ -26,6 +26,7 @@ androidxJunit = "1.2.1"
 espresso = "3.6.1"
 benchmarkMacro = "1.3.3"
 uiautomator = "2.3.0"
+profileinstaller = "1.4.1"
 
 [libraries]
 # AndroidX core / lifecycle / activity
@@ -79,6 +80,8 @@ androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-
 # Macrobenchmark (startup/jank perf — runs on a device/emulator in the perf CI)
 androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmarkMacro" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
+# Installs the bundled Baseline Profile at first run so startup uses AOT-compiled code.
+androidx-profileinstaller = { group = "androidx.profileinstaller", name = "profileinstaller", version.ref = "profileinstaller" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -88,3 +91,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 paparazzi = { id = "app.cash.paparazzi", version.ref = "paparazzi" }
 android-test = { id = "com.android.test", version.ref = "agp" }
+androidx-baselineprofile = { id = "androidx.baselineprofile", version.ref = "benchmarkMacro" }
