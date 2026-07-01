@@ -1,0 +1,61 @@
+# Flow 6 — Admin console + Relive entry.
+#
+# REQUIRES A SEEDED BACKEND and an account whose role is core_member or
+# superadmin (the admin entry + role-gated screens only render for them), plus a
+# completed ride with a recorded track for the Relive leg. Like flow 03 this is
+# therefore NOT part of the CI emulator gate — run it manually against a seeded
+# environment:
+#
+#   maestro test -e EMAIL=admin@you.com -e PASSWORD=secret \
+#     .maestro/06_admin_and_relive_journeys.yaml
+#
+# Assertions are on-screen copy (AdminHubScreen / RideDetailScreen / ReliveScreen)
+# so the flow survives restyles.
+appId: com.taleson2wheels.app
+env:
+  EMAIL: "admin@example.com"
+  PASSWORD: "password123"
+---
+- clearState
+- launchApp
+
+# ── Sign in (admin/core_member) ──────────────────────────────────────────────
+- assertVisible: "Sign in"
+- tapOn: "Email"
+- inputText: ${EMAIL}
+- tapOn: "Password"
+- inputText: ${PASSWORD}
+- hideKeyboard
+- tapOn: "Sign in"
+- assertVisible: "Profile"        # bottom bar present once signed in
+
+# ── Admin console (Profile → Admin console) ──────────────────────────────────
+- tapOn: "Profile"
+- assertVisible: "Profile"
+# "Admin console" only renders for core_member/superadmin (ProfileScreen gate).
+- tapOn: "Admin console"
+- assertVisible: "Admin console"  # AdminHubScreen title
+- assertVisible: "Users"
+- assertVisible: "Rides"
+- assertVisible: "Content moderation"
+- assertVisible: "Badges"
+- assertVisible: "Activity log"
+
+# Content moderation is where PR5's approve/reject lives.
+- tapOn: "Content moderation"
+- back                            # back to the hub
+- back                            # back to Profile
+
+# ── Relive a completed ride (Rides → a ride → "Relive in 3D") ────────────────
+- tapOn: "Rides"
+- assertVisible: "Rides"
+# Open a COMPLETED ride with a recorded track. Replace the text below with a
+# ride title seeded in your environment (upcoming rides don't show Relive).
+- tapOn: "Sakleshpur Ghats Loop"
+# RideDetailScreen shows "Relive in 3D" only for non-upcoming rides.
+- assertVisible: "Relive in 3D"
+- tapOn: "Relive in 3D"
+# ReliveScreen top bar reads "Relive · <rider>". On a -Pt2wMapbox=false build
+# the map is a placeholder, but the screen + playback controls still render.
+- assertVisible:
+    text: "Relive.*"
