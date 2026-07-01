@@ -95,6 +95,10 @@ class AdminRideEditorViewModelTest {
         override suspend fun participation(id: String) = throw UnsupportedOperationException()
         override suspend fun setParticipation(id: String, body: SetParticipationBody) = throw UnsupportedOperationException()
         override suspend fun setParticipationDroppedOut(id: String, body: DropOutBody) = throw UnsupportedOperationException()
+        override suspend fun createBadge(body: com.taleson2wheels.app.data.remote.dto.BadgeInput) = throw UnsupportedOperationException()
+        override suspend fun updateBadge(id: String, body: com.taleson2wheels.app.data.remote.dto.BadgeInput) = throw UnsupportedOperationException()
+        override suspend fun deleteBadge(id: String) = throw UnsupportedOperationException()
+        override suspend fun activityLog(cursor: String?, limit: Int) = throw UnsupportedOperationException()
     }
 
     private val admin = FakeAdminApi()

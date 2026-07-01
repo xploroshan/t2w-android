@@ -1,28 +1,34 @@
 package com.taleson2wheels.app.ui.admin
 
-import com.taleson2wheels.app.data.local.CacheStore
-import com.taleson2wheels.app.data.local.ResponseCache
 import com.taleson2wheels.app.data.remote.api.AdminApi
-import com.taleson2wheels.app.data.remote.api.RidesApi
+import com.taleson2wheels.app.data.remote.api.ContentApi
+import com.taleson2wheels.app.data.remote.dto.AchievementsResponse
+import com.taleson2wheels.app.data.remote.dto.ActivityLogEntry
 import com.taleson2wheels.app.data.remote.dto.AdminUser
+import com.taleson2wheels.app.data.remote.dto.BadgeDto
+import com.taleson2wheels.app.data.remote.dto.BadgeInput
+import com.taleson2wheels.app.data.remote.dto.BadgeDeleteResponse
+import com.taleson2wheels.app.data.remote.dto.BadgesResponse
 import com.taleson2wheels.app.data.remote.dto.BlockBody
 import com.taleson2wheels.app.data.remote.dto.BlogCard
+import com.taleson2wheels.app.data.remote.dto.ContactRequest
+import com.taleson2wheels.app.data.remote.dto.ContactResponse
+import com.taleson2wheels.app.data.remote.dto.CrewResponse
 import com.taleson2wheels.app.data.remote.dto.DropOutBody
+import com.taleson2wheels.app.data.remote.dto.GuidelinesResponse
+import com.taleson2wheels.app.data.remote.dto.HealthDto
+import com.taleson2wheels.app.data.remote.dto.MarkReadRequest
+import com.taleson2wheels.app.data.remote.dto.MarkReadResponse
 import com.taleson2wheels.app.data.remote.dto.ModerationAction
+import com.taleson2wheels.app.data.remote.dto.NotificationsResponse
 import com.taleson2wheels.app.data.remote.dto.Page
-import com.taleson2wheels.app.data.remote.dto.RegisterRideRequest
-import com.taleson2wheels.app.data.remote.dto.RideCard
-import com.taleson2wheels.app.data.remote.dto.RideDeleteResponse
-import com.taleson2wheels.app.data.remote.dto.RideDetailResponse
 import com.taleson2wheels.app.data.remote.dto.RideInput
 import com.taleson2wheels.app.data.remote.dto.RidePost
-import com.taleson2wheels.app.data.remote.dto.RidePostInput
-import com.taleson2wheels.app.data.remote.dto.RidePostResponse
-import com.taleson2wheels.app.data.remote.dto.RideRegistrationResponse
 import com.taleson2wheels.app.data.remote.dto.RoleBody
 import com.taleson2wheels.app.data.remote.dto.SetParticipationBody
+import com.taleson2wheels.app.data.remote.dto.StatsDto
 import com.taleson2wheels.app.data.repository.AdminRepository
-import com.taleson2wheels.app.data.repository.RidesRepository
+import com.taleson2wheels.app.data.repository.CatalogRepository
 import com.taleson2wheels.app.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -37,38 +43,34 @@ import org.junit.Test
 import java.io.IOException
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AdminRidesViewModelTest {
+class AdminBadgesViewModelTest {
 
     @get:Rule
     val mainDispatcher = MainDispatcherRule()
 
     private val json = Json { ignoreUnknownKeys = true }
 
-    private class FakeStore : CacheStore {
-        val map = mutableMapOf<String, String>()
-        override suspend fun read(key: String): String? = map[key]
-        override suspend fun write(key: String, json: String) { map[key] = json }
-        override suspend fun delete(key: String) { map.remove(key) }
-        override suspend fun clear() { map.clear() }
-    }
-
-    private class FakeRidesApi : RidesApi {
-        var page: Page<RideCard> = Page(items = emptyList(), nextCursor = null)
-        override suspend fun list(cursor: String?, limit: Int, status: String?): Page<RideCard> = page
-        override suspend fun detail(id: String): RideDetailResponse = error("unused")
-        override suspend fun register(id: String, body: RegisterRideRequest): RideRegistrationResponse = error("unused")
-        override suspend fun posts(id: String, cursor: String?, limit: Int): Page<RidePost> = error("unused")
-        override suspend fun createPost(id: String, body: RidePostInput): RidePostResponse = error("unused")
+    private class FakeContentApi : ContentApi {
+        var badges: List<BadgeDto> = emptyList()
+        override suspend fun badges(): BadgesResponse = BadgesResponse(badges)
+        override suspend fun health(): HealthDto = error("unused")
+        override suspend fun stats(): StatsDto = error("unused")
+        override suspend fun guidelines(): GuidelinesResponse = error("unused")
+        override suspend fun crew(): CrewResponse = error("unused")
+        override suspend fun achievements(): AchievementsResponse = error("unused")
+        override suspend fun notifications(): NotificationsResponse = error("unused")
+        override suspend fun markNotificationsRead(body: MarkReadRequest): MarkReadResponse = error("unused")
+        override suspend fun contact(body: ContactRequest): ContactResponse = error("unused")
     }
 
     private class FakeAdminApi : AdminApi {
         val deleteCalls = mutableListOf<String>()
         var deleteThrows: Throwable? = null
 
-        override suspend fun deleteRide(id: String): RideDeleteResponse {
+        override suspend fun deleteBadge(id: String): BadgeDeleteResponse {
             deleteCalls += id
             deleteThrows?.let { throw it }
-            return RideDeleteResponse(id = id, success = true)
+            return BadgeDeleteResponse(id = id, success = true)
         }
 
         // Everything else is unused in this suite.
@@ -89,40 +91,37 @@ class AdminRidesViewModelTest {
         override suspend fun setUserRole(id: String, body: RoleBody) = throw UnsupportedOperationException()
         override suspend fun createRide(body: RideInput) = throw UnsupportedOperationException()
         override suspend fun updateRide(id: String, body: RideInput) = throw UnsupportedOperationException()
+        override suspend fun deleteRide(id: String) = throw UnsupportedOperationException()
         override suspend fun participation(id: String) = throw UnsupportedOperationException()
         override suspend fun setParticipation(id: String, body: SetParticipationBody) = throw UnsupportedOperationException()
         override suspend fun setParticipationDroppedOut(id: String, body: DropOutBody) = throw UnsupportedOperationException()
-        override suspend fun createBadge(body: com.taleson2wheels.app.data.remote.dto.BadgeInput) = throw UnsupportedOperationException()
-        override suspend fun updateBadge(id: String, body: com.taleson2wheels.app.data.remote.dto.BadgeInput) = throw UnsupportedOperationException()
-        override suspend fun deleteBadge(id: String) = throw UnsupportedOperationException()
-        override suspend fun activityLog(cursor: String?, limit: Int) = throw UnsupportedOperationException()
+        override suspend fun createBadge(body: BadgeInput) = throw UnsupportedOperationException()
+        override suspend fun updateBadge(id: String, body: BadgeInput) = throw UnsupportedOperationException()
+        override suspend fun activityLog(cursor: String?, limit: Int) =
+            Page<ActivityLogEntry>(items = emptyList(), nextCursor = null)
     }
 
-    private val rides = FakeRidesApi()
+    private val content = FakeContentApi()
     private val admin = FakeAdminApi()
-    private fun vm() = AdminRidesViewModel(
-        RidesRepository(rides, json, ResponseCache(FakeStore(), json)),
-        AdminRepository(admin, json),
-    )
+    private fun vm() = AdminBadgesViewModel(CatalogRepository(content, json), AdminRepository(admin, json))
 
-    private fun ride(id: String) = RideCard(id = id, title = "Ride $id", status = "upcoming")
-    private fun idsOf(m: AdminRidesViewModel) = m.uiState.items.map { it.id }
+    private fun badge(id: String) = BadgeDto(id = id, tier = "tier-$id", name = "Badge $id", minKm = 100.0)
+    private fun idsOf(m: AdminBadgesViewModel) = m.uiState.items.map { it.id }
 
     @Test
-    fun loads_all_rides_on_init() = runTest(mainDispatcher.dispatcher) {
-        rides.page = Page(items = listOf(ride("a"), ride("b")), nextCursor = "cur")
+    fun loads_badges_on_init() = runTest(mainDispatcher.dispatcher) {
+        content.badges = listOf(badge("a"), badge("b"))
         val m = vm(); advanceUntilIdle()
         assertFalse(m.uiState.isLoading)
         assertEquals(listOf("a", "b"), idsOf(m))
-        assertEquals("cur", m.uiState.nextCursor)
     }
 
     @Test
-    fun deleting_a_ride_removes_the_row() = runTest(mainDispatcher.dispatcher) {
-        rides.page = Page(items = listOf(ride("a"), ride("b")), nextCursor = null)
+    fun deleting_a_badge_removes_the_row() = runTest(mainDispatcher.dispatcher) {
+        content.badges = listOf(badge("a"), badge("b"))
         val m = vm(); advanceUntilIdle()
 
-        m.deleteRide("a"); advanceUntilIdle()
+        m.deleteBadge("a"); advanceUntilIdle()
 
         assertEquals(listOf("b"), idsOf(m))
         assertEquals(listOf("a"), admin.deleteCalls)
@@ -130,13 +129,13 @@ class AdminRidesViewModelTest {
 
     @Test
     fun a_failed_delete_keeps_the_row_and_surfaces_an_error() = runTest(mainDispatcher.dispatcher) {
-        rides.page = Page(items = listOf(ride("a")), nextCursor = null)
+        content.badges = listOf(badge("a"))
         val m = vm(); advanceUntilIdle()
         admin.deleteThrows = IOException("boom")
 
-        m.deleteRide("a"); advanceUntilIdle()
+        m.deleteBadge("a"); advanceUntilIdle()
 
-        assertTrue("the row must stay on failure", idsOf(m).contains("a"))
+        assertTrue(idsOf(m).contains("a"))
         assertNotNull(m.uiState.actionError)
     }
 }

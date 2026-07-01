@@ -145,3 +145,49 @@ data class DropOutBody(val riderProfileId: String, val droppedOut: Boolean)
 /** `PATCH .../participation` → `{ "riderProfileId", "droppedOut" }`. */
 @Serializable
 data class DropOutResult(val riderProfileId: String, val droppedOut: Boolean)
+
+// ── Admin badge CRUD (POST/PATCH/DELETE /api/v1/admin/badges*) ────────────────
+
+/**
+ * Badge create/update payload (`BadgeInput`). Create requires tier / name /
+ * minKm; kind defaults to `lifetime_km` server-side. Every field is nullable so
+ * the app's Json (`explicitNulls = false`) omits the untouched ones on a partial
+ * PATCH. The badge *listing* stays on the public `GET /api/v1/badges`.
+ */
+@Serializable
+data class BadgeInput(
+    val tier: String? = null,
+    val kind: String? = null,
+    val name: String? = null,
+    val description: String? = null,
+    val minKm: Double? = null,
+    val icon: String? = null,
+    val color: String? = null,
+)
+
+/** create / update badge endpoints wrap the row in `{ "badge": ... }`. */
+@Serializable
+data class BadgeResponse(val badge: BadgeDto)
+
+/** `{ "success": ..., "id": ... }` returned by the delete-badge endpoint. */
+@Serializable
+data class BadgeDeleteResponse(val id: String, val success: Boolean = false)
+
+// ── Admin activity log (GET /api/v1/admin/activity-log) ───────────────────────
+
+/**
+ * One audit-trail entry (`ActivityLogEntry`), newest first. `rollbackData` (an
+ * arbitrary parsed-JSON blob) is intentionally not modelled — the mobile viewer
+ * is read-only and `ignoreUnknownKeys` drops it.
+ */
+@Serializable
+data class ActivityLogEntry(
+    val id: String,
+    val action: String,
+    val performedBy: String,
+    val performedByName: String,
+    val targetId: String,
+    val targetName: String,
+    val details: String? = null,
+    val timestamp: String,
+)
