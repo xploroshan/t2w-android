@@ -72,7 +72,11 @@ class LiveLocationService : Service() {
         createChannel()
         if (!startForegroundSafely()) {
             // ForegroundServiceStartNotAllowed (API 31+) / SecurityException
-            // (missing type or permission, API 34+) — can't run, so stop quietly.
+            // (missing type or permission, API 34+) — commonly an OS-redelivered
+            // (START_REDELIVER_INTENT) restart while the app is backgrounded, where
+            // a location FGS can't be started. Tell the user their sharing paused
+            // instead of dying silently, then stop.
+            notifyShareInterrupted()
             stopSelf()
             return START_NOT_STICKY
         }
@@ -163,47 +167,61 @@ class LiveLocationService : Service() {
 
     // ── Crash-durable tail (persisted across process death) ──────────────────
 
-    /** Upload a tail persisted by a previous session, then delete it on success;
-     *  on failure leave the file so the next start retries. Best-effort. */
+    /**
+     * Upload the tails persisted by previous sessions — EVERY pending file, each to
+     * its own ride id — deleting each on success and leaving it for the next start
+     * on failure. Tails are keyed per ride (pendingFile), so a later ride's tail
+     * never overwrites an earlier ride's still-unrecovered fixes. Best-effort.
+     */
     private fun recoverPendingFixes() {
-        val pending = readPending() ?: return
-        if (pending.points.isEmpty()) {
-            deletePending()
-            return
-        }
+        val files = pendingFiles()
+        if (files.isEmpty()) return
         scope.launch {
-            when (repository.uploadLocations(pending.rideId, pending.points)) {
-                is ApiResult.Success -> deletePending()
-                is ApiResult.Failure -> Unit // keep the file; retry on the next start
+            for (f in files) {
+                val pending = readPendingFile(f)
+                if (pending == null || pending.points.isEmpty()) {
+                    runCatching { f.delete() }
+                    continue
+                }
+                when (repository.uploadLocations(pending.rideId, pending.points)) {
+                    is ApiResult.Success -> runCatching { f.delete() }
+                    is ApiResult.Failure -> Unit // keep the file; retry on the next start
+                }
             }
         }
     }
 
     private fun persistPending(pending: PendingFixes) {
         runCatching {
-            // Merge with an unrecovered tail for the same ride, keeping the most
-            // recent MAX_RETAINED so the file can't grow without bound either.
-            val merged = readPending()
+            val file = pendingFile(pending.rideId)
+            // Merge with an unrecovered tail for the SAME ride (its own file), keeping
+            // the most recent MAX_RETAINED so a file can't grow without bound.
+            val merged = readPendingFile(file)
                 ?.takeIf { it.rideId == pending.rideId }
                 ?.let { (it.points + pending.points).takeLast(LocationBuffer.MAX_RETAINED) }
                 ?: pending.points
             val json = (application as T2WApplication).container.json
-            pendingFile().writeText(json.encodeToString(PendingFixes.serializer(), PendingFixes(pending.rideId, merged)))
+            file.writeText(json.encodeToString(PendingFixes.serializer(), PendingFixes(pending.rideId, merged)))
         }
     }
 
-    private fun readPending(): PendingFixes? = runCatching {
-        val f = pendingFile()
+    private fun readPendingFile(f: java.io.File): PendingFixes? = runCatching {
         if (!f.exists()) return null
         val json = (application as T2WApplication).container.json
         json.decodeFromString(PendingFixes.serializer(), f.readText())
     }.getOrNull()
 
-    private fun deletePending() {
-        runCatching { pendingFile().delete() }
+    /** All persisted tails: one per ride, plus a legacy single-file tail to migrate. */
+    private fun pendingFiles(): List<java.io.File> {
+        val perRide = filesDir
+            .listFiles { f -> f.name.startsWith(PENDING_PREFIX) && f.name.endsWith(".json") }
+            ?.toList().orEmpty()
+        val legacy = java.io.File(filesDir, LEGACY_PENDING_FILE).takeIf { it.exists() }
+        return perRide + listOfNotNull(legacy)
     }
 
-    private fun pendingFile() = java.io.File(filesDir, PENDING_FILE)
+    private fun pendingFile(rideId: String) =
+        java.io.File(filesDir, PENDING_PREFIX + rideId.replace(Regex("[^A-Za-z0-9_-]"), "_") + ".json")
 
     override fun onBind(intent: Intent?) = null
 
@@ -241,13 +259,51 @@ class LiveLocationService : Service() {
             .build()
     }
 
+    /**
+     * Post a normal (dismissable, non-FGS) notification when background sharing
+     * couldn't (re)start — so an OS-redelivered restart that Android blocks doesn't
+     * die silently. Best-effort: skipped if POST_NOTIFICATIONS isn't granted (API 33+).
+     */
+    private fun notifyShareInterrupted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            return
+        }
+        runCatching {
+            val open = packageManager.getLaunchIntentForPackage(packageName)?.let {
+                PendingIntent.getActivity(
+                    this, 1, it,
+                    PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+                )
+            }
+            val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                Notification.Builder(this, CHANNEL_ID)
+            } else {
+                @Suppress("DEPRECATION") Notification.Builder(this)
+            }
+            val notif = builder
+                .setContentTitle("Live sharing paused")
+                .setContentText("Reopen Tales on 2 Wheels to resume sharing your location.")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setAutoCancel(true)
+                .apply { open?.let { setContentIntent(it) } }
+                .build()
+            getSystemService(NotificationManager::class.java).notify(NOTIF_INTERRUPTED_ID, notif)
+        }
+    }
+
     companion object {
         private const val CHANNEL_ID = "live_location"
         private const val NOTIF_ID = 4201
+        private const val NOTIF_INTERRUPTED_ID = 4202
         private const val EXTRA_RIDE_ID = "ride_id"
         private const val ACTION_STOP = "com.taleson2wheels.app.STOP_LIVE_SHARE"
         private const val FLUSH_MS = 8_000L
-        private const val PENDING_FILE = "pending_live_fixes.json"
+        // Per-ride tail files ("<prefix><rideId>.json"); LEGACY is the old single file.
+        private const val PENDING_PREFIX = "pending_live_fixes_"
+        private const val LEGACY_PENDING_FILE = "pending_live_fixes.json"
 
         fun start(context: Context, rideId: String) {
             val intent = Intent(context, LiveLocationService::class.java).putExtra(EXTRA_RIDE_ID, rideId)

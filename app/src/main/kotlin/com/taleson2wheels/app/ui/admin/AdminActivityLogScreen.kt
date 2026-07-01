@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,7 +22,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +32,7 @@ import com.taleson2wheels.app.data.remote.dto.ActivityLogEntry
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.OnBottomReached
 import com.taleson2wheels.app.ui.components.BrandBackground
 import com.taleson2wheels.app.ui.components.BrandCard
 import java.time.Instant
@@ -72,12 +73,18 @@ fun AdminActivityLogScreen(
                 state.isLoading && state.items.isEmpty() -> LoadingView()
                 state.error != null && state.items.isEmpty() -> ErrorView(state.error, viewModel::refresh)
                 state.items.isEmpty() -> ErrorView("No activity yet.", viewModel::refresh)
-                else -> PullToRefreshBox(
+                else -> {
+                    val listState = rememberLazyListState()
+                    // Fetch the next page from the actual scroll position, not the
+                    // footer's composition, so a tall viewport doesn't auto-chain pages.
+                    listState.OnBottomReached { viewModel.loadMore() }
+                    PullToRefreshBox(
                     isRefreshing = state.isLoading,
                     onRefresh = viewModel::refresh,
                     modifier = Modifier.fillMaxSize(),
                 ) {
                     LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -94,11 +101,11 @@ fun AdminActivityLogScreen(
                                         modifier = Modifier.fillMaxWidth().clickable { viewModel.loadMore() }.padding(16.dp),
                                     )
                                 } else {
-                                    LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
                                     LoadingView(Modifier.fillMaxWidth().padding(16.dp))
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

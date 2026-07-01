@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -17,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -32,6 +32,7 @@ import com.taleson2wheels.app.data.remote.dto.RideCard
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.OnBottomReached
 import com.taleson2wheels.app.ui.components.BrandBackground
 import com.taleson2wheels.app.ui.components.BrandCard
 import com.taleson2wheels.app.ui.components.TagChip
@@ -68,36 +69,42 @@ fun RidesScreen(
                 state.rides.isEmpty() ->
                     ErrorView(message = stringResource(R.string.rides_empty), onRetry = viewModel::refresh)
 
-                else -> PullToRefreshBox(
-                    isRefreshing = state.isLoading,
-                    onRefresh = viewModel::refresh,
-                    modifier = Modifier.fillMaxSize(),
-                ) {
-                    LazyColumn(
+                else -> {
+                    val listState = rememberLazyListState()
+                    // Load the next page when scrolled near the end (not merely because
+                    // the footer is composed), so tall viewports don't auto-chain pages.
+                    listState.OnBottomReached { viewModel.loadMore() }
+                    PullToRefreshBox(
+                        isRefreshing = state.isLoading,
+                        onRefresh = viewModel::refresh,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        items(state.rides, key = { it.id }) { ride ->
-                            RideCardItem(ride = ride, onClick = { onRideClick(ride.id) })
-                        }
-                        if (state.canLoadMore || state.loadMoreError != null) {
-                            item(key = "load-more") {
-                                if (state.loadMoreError != null) {
-                                    // A failed page must not silently spin — let the user retry.
-                                    Text(
-                                        text = "Couldn't load more — tap to retry",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        textAlign = TextAlign.Center,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { viewModel.loadMore() }
-                                            .padding(16.dp),
-                                    )
-                                } else {
-                                    LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
-                                    LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            items(state.rides, key = { it.id }) { ride ->
+                                RideCardItem(ride = ride, onClick = { onRideClick(ride.id) })
+                            }
+                            if (state.canLoadMore || state.loadMoreError != null) {
+                                item(key = "load-more") {
+                                    if (state.loadMoreError != null) {
+                                        // A failed page must not silently spin — let the user retry.
+                                        Text(
+                                            text = "Couldn't load more — tap to retry",
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { viewModel.loadMore() }
+                                                .padding(16.dp),
+                                        )
+                                    } else {
+                                        LoadingView(Modifier.fillMaxWidth().padding(16.dp))
+                                    }
                                 }
                             }
                         }

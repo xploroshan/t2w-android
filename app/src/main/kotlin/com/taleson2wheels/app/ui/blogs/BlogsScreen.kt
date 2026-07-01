@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Edit
@@ -50,6 +51,7 @@ import com.taleson2wheels.app.data.remote.dto.BlogCard
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.OnBottomReached
 import com.taleson2wheels.app.ui.components.BrandBackground
 import com.taleson2wheels.app.ui.components.BrandCard
 
@@ -105,12 +107,18 @@ fun BlogsScreen(
                         ErrorView(state.error, viewModel::refresh)
                     state.blogs.isEmpty() ->
                         ErrorView(emptyMessage(state.filter), viewModel::refresh)
-                    else -> PullToRefreshBox(
+                    else -> {
+                        val listState = rememberLazyListState()
+                        // Fetch the next page from the actual scroll position, not the
+                        // footer's composition, so a tall viewport doesn't auto-chain pages.
+                        listState.OnBottomReached { viewModel.loadMore() }
+                        PullToRefreshBox(
                         isRefreshing = state.isLoading,
                         onRefresh = viewModel::refresh,
                         modifier = Modifier.fillMaxSize(),
                     ) {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(16.dp),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -136,12 +144,12 @@ fun BlogsScreen(
                                                 .padding(16.dp),
                                         )
                                     } else {
-                                        LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
                                         LoadingView(Modifier.fillMaxWidth().padding(16.dp))
                                     }
                                 }
                             }
                         }
+                    }
                     }
                 }
             }

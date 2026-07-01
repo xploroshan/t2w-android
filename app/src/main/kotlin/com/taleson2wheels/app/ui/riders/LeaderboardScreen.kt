@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -28,7 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +43,7 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.OnBottomReached
 import com.taleson2wheels.app.ui.components.BrandBackground
 import com.taleson2wheels.app.ui.components.BrandCard
 import com.taleson2wheels.app.ui.theme.T2WBronze
@@ -130,7 +131,13 @@ fun LeaderboardScreen(
                             if (state.query.isNotBlank()) "No riders match \"${state.query}\"." else "No riders yet.",
                             viewModel::refresh,
                         )
-                    else -> LazyColumn(
+                    else -> {
+                        val listState = rememberLazyListState()
+                        // Fetch the next page from the actual scroll position, not the
+                        // footer's composition, so a tall viewport doesn't auto-chain pages.
+                        listState.OnBottomReached { viewModel.loadMore() }
+                        LazyColumn(
+                        state = listState,
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -158,11 +165,11 @@ fun LeaderboardScreen(
                                             .padding(16.dp),
                                     )
                                 } else {
-                                    LaunchedEffect(state.nextCursor) { viewModel.loadMore() }
                                     LoadingView(Modifier.fillMaxWidth().padding(16.dp))
                                 }
                             }
                         }
+                    }
                     }
                 }
             }
