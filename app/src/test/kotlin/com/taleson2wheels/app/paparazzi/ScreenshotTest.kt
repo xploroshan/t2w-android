@@ -31,6 +31,9 @@ import com.taleson2wheels.app.ui.auth.AuthErrorText
 import com.taleson2wheels.app.ui.auth.AuthField
 import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.blogs.BlogCardItem
+import com.taleson2wheels.app.ui.common.EmptyState
+import com.taleson2wheels.app.ui.common.ErrorView
+import com.taleson2wheels.app.ui.common.LoadingView
 import com.taleson2wheels.app.ui.components.BrandWordmark
 import com.taleson2wheels.app.ui.components.SectionHeader
 import com.taleson2wheels.app.ui.home.Hero
@@ -231,6 +234,29 @@ class ScreenshotTest {
                 RiderRow(LiveRiderPosition(userId = "u3", userName = "Neha K", lat = 0.0, lng = 0.0, speed = 8.0, isDeviated = true))
             }
         }
+    }
+
+    // ── Shared state views (the loading / error / empty matrix every list reuses) ──
+
+    @Test
+    fun state_loading() = snapshot {
+        LoadingView()
+    }
+
+    @Test
+    fun state_error() = snapshot {
+        ErrorView(
+            message = "Couldn't reach Tales on 2 Wheels. Check your connection and try again.",
+            onRetry = {},
+        )
+    }
+
+    @Test
+    fun state_empty() = snapshot {
+        EmptyState(
+            title = "No rides yet",
+            message = "New rides show up here as the crew plans them. Pull to refresh.",
+        )
     }
 
     @Test
