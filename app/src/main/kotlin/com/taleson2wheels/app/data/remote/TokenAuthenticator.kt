@@ -40,8 +40,16 @@ class TokenAuthenticator(
         // Never refresh for unauthenticated calls or for the refresh call itself.
         val failedAuth = response.request.header("Authorization") ?: return null
         if (response.request.url.encodedPath.endsWith("/auth/refresh")) return null
-        // Bail out if we've already retried this request.
-        if (priorResponseCount(response) >= 2) return null
+        // Already retried once and STILL 401 — the token we just installed (a
+        // freshly refreshed pair, or a concurrent thread's token) is itself
+        // rejected, e.g. a mid-flight server-side tokenVersion bump / revocation.
+        // The session is unrecoverable, so clear it and route back to login
+        // instead of leaving the user stranded on the authed shell where every
+        // request 401s forever.
+        if (priorResponseCount(response) >= 2) {
+            forceLogout()
+            return null
+        }
 
         val failedToken = failedAuth.removePrefix("Bearer ").trim()
 

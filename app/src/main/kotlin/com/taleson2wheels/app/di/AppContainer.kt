@@ -32,6 +32,7 @@ import com.taleson2wheels.app.data.repository.RidesRepository
 import com.taleson2wheels.app.data.repository.UploadRepository
 import com.taleson2wheels.app.data.session.SessionStore
 import kotlinx.serialization.json.Json
+import okhttp3.Interceptor
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -61,12 +62,25 @@ class AppContainer(context: Context) {
 
     private val converterFactory = json.asConverterFactory("application/json".toMediaType())
 
-    private val logging = HttpLoggingInterceptor().apply {
-        level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BODY
-        } else {
-            HttpLoggingInterceptor.Level.NONE
-        }
+    // Request/response logging. Release builds are silent (NONE). Debug builds
+    // log full BODYs for ordinary endpoints, but auth routes (/auth/*) are capped
+    // at HEADERS and the Authorization/Cookie headers are redacted — so access &
+    // refresh tokens and passwords carried in login/register/refresh/reset/
+    // change-password bodies (and the bearer header on every authed call) never
+    // reach logcat, even in debug/QA builds.
+    private val bodyLogging = HttpLoggingInterceptor().apply {
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+    }
+    private val authLogging = HttpLoggingInterceptor().apply {
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.HEADERS else HttpLoggingInterceptor.Level.NONE
+        redactHeader("Authorization")
+        redactHeader("Cookie")
+    }
+    private val logging = Interceptor { chain ->
+        val delegate = if (chain.request().url.encodedPath.contains("/auth/")) authLogging else bodyLogging
+        delegate.intercept(chain)
     }
 
     /**

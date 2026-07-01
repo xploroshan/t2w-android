@@ -38,15 +38,17 @@ class RidesRepository(
 
     suspend fun rides(
         cursor: String? = null,
-        limit: Int = 20,
+        limit: Int = DEFAULT_LIMIT,
         status: String? = null,
     ): ApiResult<Page<RideCard>> {
         val call: suspend () -> ApiResult<Page<RideCard>> = {
             safeApiCall(json) { ridesApi.list(cursor = cursor, limit = limit, status = status) }
         }
-        // Only the default first page is cacheable — cursors and status filters
-        // are request-specific and shouldn't shadow the offline snapshot.
-        return if (cursor == null && status == null) {
+        // Only the default first page is cacheable — cursors, status filters and
+        // non-default page sizes are request-specific and must not read/overwrite
+        // the single "rides:first" snapshot (which is always a DEFAULT_LIMIT-sized
+        // page, and is what register() invalidates).
+        return if (cursor == null && status == null && limit == DEFAULT_LIMIT) {
             cache.networkWithFallback(
                 key = CACHE_RIDES_FIRST,
                 serializer = Page.serializer(RideCard.serializer()),
@@ -86,5 +88,6 @@ class RidesRepository(
 
     private companion object {
         const val CACHE_RIDES_FIRST = "rides:first"
+        const val DEFAULT_LIMIT = 20
     }
 }

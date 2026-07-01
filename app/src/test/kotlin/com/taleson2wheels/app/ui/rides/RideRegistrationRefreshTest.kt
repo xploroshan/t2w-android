@@ -142,6 +142,24 @@ class RideRegistrationRefreshTest {
     }
 
     @Test
+    fun only_the_default_page_size_is_cached_under_rides_first() = runTest(mainDispatcher.dispatcher) {
+        val api = FakeRidesApi()
+        val store = FakeStore()
+        val repo = repo(api, store)
+
+        // A non-default limit must bypass the cache so it can't alias / overwrite
+        // the single "rides:first" snapshot (which is always a default-sized page).
+        repo.rides(limit = 50)
+        advanceUntilIdle()
+        assertFalse("non-default page size must not touch the shared key", store.map.containsKey("rides:first"))
+
+        // The default first page still caches.
+        repo.rides()
+        advanceUntilIdle()
+        assertTrue("default first page is cached", store.map.containsKey("rides:first"))
+    }
+
+    @Test
     fun detail_does_not_reload_for_a_different_ride() = runTest(mainDispatcher.dispatcher) {
         val api = FakeRidesApi()
         val repo = repo(api, FakeStore())
