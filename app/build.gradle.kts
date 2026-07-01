@@ -94,6 +94,25 @@ run {
     }
 }
 
+// Whether to compile the real Mapbox-backed Relive flyover. The Mapbox Maps SDK
+// resolves from a private Maven repo needing the SECRET MAPBOX_DOWNLOADS_TOKEN, so
+// a fresh clone (or CI without the secret) can't fetch it. Default OFF so the app
+// builds token-free — the Relive screen then compiles a lightweight placeholder map
+// (src/noMapbox) and everything else (playback engine, HUD, controls) works. Turn ON
+// for real terrain rendering with `-Pt2wMapbox=true` (CI + release; needs the token).
+// See docs/SETUP_SECRETS.md.
+val enableMapbox = (providers.gradleProperty("t2wMapbox").orNull ?: "false").toBoolean()
+run {
+    val buildingRelease = gradle.startParameter.taskNames.any { it.contains("elease") }
+    if (buildingRelease && !enableMapbox) {
+        logger.warn(
+            "\n⚠️  RELEASE build with -Pt2wMapbox=false — the Relive 3D flyover ships as a " +
+                "placeholder (no Mapbox SDK). Pass -Pt2wMapbox=true (and configure " +
+                "MAPBOX_DOWNLOADS_TOKEN) to bundle the real terrain map. See docs/SETUP_SECRETS.md.\n",
+        )
+    }
+}
+
 android {
     namespace = "com.taleson2wheels.app"
     compileSdk = 35
@@ -113,6 +132,18 @@ android {
         // works without it (the map just won't render — a release with it empty
         // gets a loud warning above). See docs/HARDENING.md.
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+
+        // True only when the real Mapbox SDK is compiled in (see enableMapbox above).
+        buildConfigField("boolean", "HAS_MAPBOX", "$enableMapbox")
+    }
+
+    // Swap the Relive map implementation by build flag: the real Mapbox-backed one
+    // (src/mapbox) when enabled, or a token-free placeholder (src/noMapbox) when not.
+    // Exactly one is on the main source set, so the app compiles either way.
+    sourceSets {
+        getByName("main") {
+            kotlin.srcDir(if (enableMapbox) "src/mapbox/kotlin" else "src/noMapbox/kotlin")
+        }
     }
 
     signingConfigs {
@@ -239,7 +270,9 @@ dependencies {
     // animated track playback). Resolves from Mapbox's private Maven repo, which
     // needs the secret MAPBOX_DOWNLOADS_TOKEN configured (settings.gradle.kts +
     // docs/SETUP_SECRETS.md). Runtime tiles use the public MAPBOX_ACCESS_TOKEN.
-    implementation(libs.mapbox.maps)
+    // Only linked when -Pt2wMapbox=true; otherwise src/noMapbox stubs the map so a
+    // token-free build still compiles.
+    if (enableMapbox) implementation(libs.mapbox.maps)
 
     // Offline cache (Room + KSP processor)
     implementation(libs.androidx.room.runtime)

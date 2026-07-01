@@ -293,36 +293,49 @@ MAPBOX_DOWNLOADS_TOKEN=sk.eyJ1Ijoi...your-secret-downloads-token
 > Gradle config keeps it off every commit automatically. (An env var
 > `MAPBOX_DOWNLOADS_TOKEN=...` also works, e.g. in CI — see below.)
 
-### Step 6 — rebuild
+### Step 6 — build the real terrain map with `-Pt2wMapbox=true`
+
+**The Mapbox SDK is opt-in.** By default the app builds **token-free**: the
+Relive screen compiles a lightweight placeholder map (`src/noMapbox`) and needs
+neither token. That's why a fresh clone builds with no Mapbox setup at all.
+
+To compile the real Mapbox-backed terrain flyover, pass the flag (token B must be
+configured per Step 5):
 
 ```bash
-./gradlew clean :app:assembleDebug
+./gradlew clean :app:assembleDebug -Pt2wMapbox=true
 ```
 
-If token B is wrong/missing you'll see a `401 Unauthorized` from
-`api.mapbox.com` when Gradle tries to fetch `com.mapbox.maps:android` — that
-means fix `MAPBOX_DOWNLOADS_TOKEN`. If token A is missing the build still
-succeeds; only the Relive flyover shows its placeholder.
+If token B is wrong/missing on a `-Pt2wMapbox=true` build you'll see a
+`401 Unauthorized` from `api.mapbox.com` when Gradle tries to fetch
+`com.mapbox.maps:android` — fix `MAPBOX_DOWNLOADS_TOKEN`. If token A (the public
+`pk.`) is missing the build still succeeds; the Relive map just shows its "set a
+token" placeholder at runtime. Release builds should pass `-Pt2wMapbox=true` to
+ship the real map (a release without it warns loudly).
 
 ### CI
 
-The Relive screen has landed, so the Mapbox SDK is now a real `:app` dependency —
-CI **must** be able to download it. Add **`MAPBOX_DOWNLOADS_TOKEN`** (the `sk.`
-with `Downloads:Read`) as a **repository secret** (Settings → Secrets and
-variables → Actions → New repository secret). Both `android-ci.yml` and
-`android-emulator-ci.yml` already export it as an env var for their Gradle jobs:
+The default PR gate (`android-ci.yml`: unit tests + Paparazzi + `assembleDebug`)
+and the emulator suite both run **token-free** (`-Pt2wMapbox=false`), so they need
+no Mapbox secret — CI proves a fresh clone builds. A dedicated guarded step then
+compiles the **real** Mapbox variant (`-Pt2wMapbox=true`) **only when** the
+`MAPBOX_DOWNLOADS_TOKEN` repo secret is present, and skips with a notice otherwise:
 
 ```yaml
-env:
-  MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
-  ORG_GRADLE_PROJECT_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+- name: Compile Mapbox Relive variant (if token available)
+  env:
+    MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+  run: |
+    if [ -n "$MAPBOX_DOWNLOADS_TOKEN" ]; then
+      ./gradlew :app:compileDebugKotlin -Pt2wMapbox=true --stacktrace
+    else
+      echo "::notice::MAPBOX_DOWNLOADS_TOKEN not set — skipping the real Mapbox compile check"
+    fi
 ```
 
-Without the `MAPBOX_DOWNLOADS_TOKEN` secret the build fails to resolve
-`com.mapbox.maps:android` with a **401** from Mapbox's Maven repo. The public
-**`MAPBOX_ACCESS_TOKEN`** (`pk.`) is optional in CI — a debug build tolerates a
-blank runtime token (the Relive screen just shows its "add a token" placeholder);
-add it as a secret too if you want CI artifacts to render live tiles.
+So: add **`MAPBOX_DOWNLOADS_TOKEN`** (the `sk.` with `Downloads:Read`) as a
+**repository secret** (Settings → Secrets and variables → Actions) to have CI
+validate the real terrain map; without it CI still passes on the token-free build.
 
 > **Golden rule (again):** the `sk.` downloads token is a real secret — never
 > commit it, never paste it in chat/PRs. If it leaks, delete it at
@@ -337,7 +350,7 @@ add it as a secret too if you want CI artifacts to render live tiles.
 | API base URL | `secrets.properties` → `T2W_API_BASE_URL*` | your backend host | Yes (defaults to prod/emulator) |
 | Maps key | `secrets.properties` → `MAPS_API_KEY` | Google Cloud Console | Yes (blank map) |
 | Mapbox runtime (`pk.`) | `secrets.properties` → `MAPBOX_ACCESS_TOKEN` | account.mapbox.com → Tokens | Yes (Relive placeholder) |
-| Mapbox downloads (`sk.`) | `~/.gradle/gradle.properties` (local) · repo secret (CI) → `MAPBOX_DOWNLOADS_TOKEN` | account.mapbox.com → Tokens (Downloads:Read) | **No** — the build now needs it to fetch the Mapbox SDK |
+| Mapbox downloads (`sk.`) | `~/.gradle/gradle.properties` (local) · repo secret (CI) → `MAPBOX_DOWNLOADS_TOKEN` | account.mapbox.com → Tokens (Downloads:Read) | Yes by default (token-free build) — only needed with `-Pt2wMapbox=true` for the real terrain map |
 | FCM | `app/google-services.json` | Firebase Console | Yes (no push) |
 | Sentry DSN | `secrets.properties` → `SENTRY_DSN` | sentry.io | Yes (no crash reports) |
 | Release signing | `keystore.properties` + `*.jks` | `keytool` (you generate it) | Yes (debug‑signed) |

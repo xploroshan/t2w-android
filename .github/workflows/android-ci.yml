@@ -17,15 +17,12 @@ jobs:
   build:
     name: Unit tests + debug APK
     runs-on: ubuntu-latest
-    # Mapbox's Maps SDK (Relive 3D flyover) resolves from Mapbox's private Maven
-    # repo, authenticated with a SECRET downloads token. Add it as a repo secret
-    # named MAPBOX_DOWNLOADS_TOKEN (a token with the Downloads:Read scope) or the
-    # build fails to resolve com.mapbox.maps:android with a 401. MAPBOX_ACCESS_TOKEN
-    # (the public pk. runtime token) is optional here — a debug build tolerates a
-    # blank runtime token. settings.gradle.kts reads the downloads token from the
-    # environment; build.gradle.kts reads the runtime token as a Gradle property.
+    # The unit-test / Paparazzi / assemble gate runs TOKEN-FREE (default
+    # -Pt2wMapbox=false), so it needs no Mapbox secret and proves a fresh clone
+    # builds. A separate guarded step below compiles the real Mapbox-backed Relive
+    # map (-Pt2wMapbox=true) when MAPBOX_DOWNLOADS_TOKEN is configured. The public
+    # runtime token stays optional (a debug build tolerates a blank one).
     env:
-      MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
       ORG_GRADLE_PROJECT_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
     steps:
       - uses: actions/checkout@v4
@@ -52,6 +49,19 @@ jobs:
 
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
+
+      # Validate the REAL Mapbox-backed Relive map compiles (src/mapbox). Needs the
+      # secret downloads token to resolve com.mapbox.maps:android; skipped with a
+      # notice on forks / setups without it, so the gate above stays token-free.
+      - name: Compile Mapbox Relive variant (if token available)
+        env:
+          MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+        run: |
+          if [ -n "$MAPBOX_DOWNLOADS_TOKEN" ]; then
+            ./gradlew :app:compileDebugKotlin -Pt2wMapbox=true --stacktrace
+          else
+            echo "::notice::MAPBOX_DOWNLOADS_TOKEN not set — skipping the real Mapbox compile check"
+          fi
 
       # Artifact uploads are convenience outputs, not correctness gates — the
       # unit-test + assemble steps above are the real gate. GitHub's blob storage
