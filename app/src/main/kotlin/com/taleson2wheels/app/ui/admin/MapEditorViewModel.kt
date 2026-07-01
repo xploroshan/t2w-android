@@ -119,6 +119,10 @@ class MapEditorViewModel(
     }
 
     fun selectRider(userId: String) {
+        // Don't switch riders mid-action: a smooth/revert in flight is attributed to
+        // the rider selected when it started, and refreshAfterMutation reads the
+        // current selection — switching now would mismatch the two and race the path.
+        if (uiState.busy) return
         if (userId == uiState.selectedRiderId) return
         uiState = uiState.copy(selectedRiderId = userId, smoothPreview = null, smoothPreviewPoints = null)
         viewModelScope.launch { fetchRiderPath(userId) }
@@ -226,10 +230,17 @@ class MapEditorViewModel(
             uiState = uiState.copy(actionError = e.message ?: "Enter valid numbers")
             return
         }
+        val sentKeys = f.dirty
         runAction {
             when (val r = mapEditRepository.updateStats(uiState.rideId, body)) {
                 is ApiResult.Success -> {
-                    uiState = uiState.copy(statsForm = f.copy(dirty = emptySet()), message = "Stats updated.")
+                    // Clear only the keys we actually sent, against the CURRENT form —
+                    // so a field the admin edited WHILE the save was in flight keeps its
+                    // value and dirty flag instead of being clobbered by a stale snapshot.
+                    uiState = uiState.copy(
+                        statsForm = uiState.statsForm.copy(dirty = uiState.statsForm.dirty - sentKeys),
+                        message = "Stats updated.",
+                    )
                     null
                 }
                 is ApiResult.Failure -> r.error.userMessage

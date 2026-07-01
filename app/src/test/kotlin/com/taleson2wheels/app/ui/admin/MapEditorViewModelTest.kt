@@ -150,6 +150,24 @@ class MapEditorViewModelTest {
     }
 
     @Test
+    fun saveStats_clears_only_the_sent_keys_so_a_saved_field_is_not_re_sent() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.onStats { copy(distanceKm = "10", dirty = dirty + "distanceKmOverride") }
+        m.saveStats(); advanceUntilIdle()
+        assertTrue(m.uiState.statsForm.dirty.isEmpty())
+
+        // A later edit + save must send ONLY the new field (distance is no longer dirty).
+        m.onStats { copy(avgSpeedKmh = "40", dirty = dirty + "avgSpeedKmhOverride") }
+        m.saveStats(); advanceUntilIdle()
+
+        val body = edit.lastStatsBody!!
+        assertEquals(1, body.size)
+        assertEquals(40.0, body["avgSpeedKmhOverride"]!!.jsonPrimitive.double, 0.0)
+        assertNull(body["distanceKmOverride"])
+    }
+
+    @Test
     fun saveStats_with_no_changes_does_not_call_the_api() = runTest(mainDispatcher.dispatcher) {
         val m = vm(); m.load("ride-1"); advanceUntilIdle()
 

@@ -151,11 +151,14 @@ private fun RiderSection(state: MapEditorUiState, viewModel: MapEditorViewModel)
             return@BrandCard
         }
         var expanded by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        // Don't allow switching riders mid-action (the VM also ignores it while busy).
+        val canPick = !state.busy
+        ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { if (canPick) expanded = it }) {
             OutlinedTextField(
                 value = state.selectedRiderName,
                 onValueChange = {},
                 readOnly = true,
+                enabled = canPick,
                 label = { Text("Rider") },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
@@ -234,12 +237,12 @@ private fun StatsSection(state: MapEditorUiState, viewModel: MapEditorViewModel)
             )
         }
         Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            NumField("Distance (km)", f.distanceKm) { v -> viewModel.onStats { copy(distanceKm = v, dirty = dirty + "distanceKmOverride") } }
-            NumField("Avg speed (km/h)", f.avgSpeedKmh) { v -> viewModel.onStats { copy(avgSpeedKmh = v, dirty = dirty + "avgSpeedKmhOverride") } }
-            NumField("Max speed (km/h)", f.maxSpeedKmh) { v -> viewModel.onStats { copy(maxSpeedKmh = v, dirty = dirty + "maxSpeedKmhOverride") } }
-            NumField("Moving time (min)", f.movingMinutes) { v -> viewModel.onStats { copy(movingMinutes = v, dirty = dirty + "movingMinutesOverride") } }
-            NumField("Elevation gain (m)", f.elevationGainM) { v -> viewModel.onStats { copy(elevationGainM = v, dirty = dirty + "elevationGainM") } }
-            NumField("Elevation loss (m)", f.elevationLossM) { v -> viewModel.onStats { copy(elevationLossM = v, dirty = dirty + "elevationLossM") } }
+            NumField("Distance (km)", f.distanceKm, enabled) { v -> viewModel.onStats { copy(distanceKm = v, dirty = dirty + "distanceKmOverride") } }
+            NumField("Avg speed (km/h)", f.avgSpeedKmh, enabled) { v -> viewModel.onStats { copy(avgSpeedKmh = v, dirty = dirty + "avgSpeedKmhOverride") } }
+            NumField("Max speed (km/h)", f.maxSpeedKmh, enabled) { v -> viewModel.onStats { copy(maxSpeedKmh = v, dirty = dirty + "maxSpeedKmhOverride") } }
+            NumField("Moving time (min)", f.movingMinutes, enabled) { v -> viewModel.onStats { copy(movingMinutes = v, dirty = dirty + "movingMinutesOverride") } }
+            NumField("Elevation gain (m)", f.elevationGainM, enabled) { v -> viewModel.onStats { copy(elevationGainM = v, dirty = dirty + "elevationGainM") } }
+            NumField("Elevation loss (m)", f.elevationLossM, enabled) { v -> viewModel.onStats { copy(elevationLossM = v, dirty = dirty + "elevationLossM") } }
             GradientButton("Save stats", onClick = viewModel::saveStats, enabled = enabled && f.dirty.isNotEmpty(),
                 loading = state.busy, modifier = Modifier.fillMaxWidth())
         }
@@ -247,10 +250,11 @@ private fun StatsSection(state: MapEditorUiState, viewModel: MapEditorViewModel)
 }
 
 @Composable
-private fun NumField(label: String, value: String, onChange: (String) -> Unit) {
+private fun NumField(label: String, value: String, enabled: Boolean, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
+        enabled = enabled,
         label = { Text(label) },
         singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
