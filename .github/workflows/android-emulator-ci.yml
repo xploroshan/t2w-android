@@ -68,7 +68,14 @@ jobs:
               -Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.suppressErrors=EMULATOR \
               --stacktrace || echo "::warning::macrobenchmark failed (emulator perf is informational)"
             ./gradlew :app:installDebug
-            maestro test .maestro/01_launch_to_login.yaml .maestro/02_login_form_validation.yaml \
+            # Backend-free flows (auth gate + client-side navigation only). The
+            # signed-in journeys (03 tabs, 06 admin/relive) need a seeded backend
+            # and run manually — see .maestro/README.md.
+            maestro test \
+              .maestro/01_launch_to_login.yaml \
+              .maestro/02_login_form_validation.yaml \
+              .maestro/04_register_navigation.yaml \
+              .maestro/05_forgot_password_navigation.yaml \
               || echo "::warning::Maestro flows failed (some require a seeded backend)"
 
       - name: Upload device-test reports

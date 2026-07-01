@@ -14,6 +14,9 @@ restyle changes. They intentionally avoid brittle view-ID / index selectors.
 | `01_launch_to_login.yaml` | Cold launch on a signed-out install lands on the login screen; asserts title, subtitle, field labels, button, and the forgot/register links. |
 | `02_login_form_validation.yaml` | The login form keeps "Sign in" inert on blank input, accepts a well-formed email + password, and dispatches the request without crashing. |
 | `03_tab_navigation.yaml` | Signs in, then walks the bottom tabs Home → Rides → Riders → Profile, asserting each destination's app-bar text. |
+| `04_register_navigation.yaml` | From login, opens the "Create account" flow (email → verification-code step) and returns. No backend. |
+| `05_forgot_password_navigation.yaml` | From login, opens the "Forgot password" reset flow (email → reset-code step) and returns via "Back to sign in". No backend. |
+| `06_admin_and_relive_journeys.yaml` | Signs in as an admin, opens the Admin console (asserts all five hub entries + Content moderation), then opens a completed ride's "Relive in 3D". **Needs a seeded admin backend.** |
 
 ## Prerequisites
 
@@ -57,10 +60,15 @@ maestro studio
 
 - `clearState` at the top of each flow wipes the DataStore session so runs start
   signed-out and deterministic.
-- Flows 01 and 02 need **no backend** — they exercise the auth gate and
-  client-side form behaviour only. Flow 02's post-submit assertion is
-  deliberately lenient (the login title remaining proves the form round-tripped);
-  point it at a seeded backend and swap in a home-screen assertion for a true
-  happy-path login.
-- CI: Maestro Cloud or a self-hosted emulator runner can execute `maestro test
-  .maestro`. Keep credentials in CI secrets and inject them with `-e`.
+- **No backend needed** (these run in the CI emulator gate): `01`, `02`, `04`,
+  `05` — they exercise the auth gate and client-side navigation/form behaviour
+  only. Flow 02's post-submit assertion is deliberately lenient (the login title
+  remaining proves the form round-tripped); point it at a seeded backend and swap
+  in a home-screen assertion for a true happy-path login.
+- **Backend required** (run manually with `-e EMAIL=… -e PASSWORD=…`): `03` needs
+  any seeded account; `06` needs a **core_member/superadmin** account (admin
+  console) plus a completed ride with a recorded track (Relive) — adjust its
+  ride-title selector to your seeded data.
+- CI: the emulator workflow runs the no-backend flows (`01 02 04 05`). Maestro
+  Cloud or a self-hosted runner with a seeded backend can execute the full
+  `maestro test .maestro`. Keep credentials in CI secrets and inject them with `-e`.

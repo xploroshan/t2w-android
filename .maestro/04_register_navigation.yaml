@@ -1,0 +1,31 @@
+# Flow 4 — From login, reach the "Create account" flow and return.
+#
+# Pure client-side navigation: tapping "New rider? Create an account" on
+# LoginScreen pushes RegisterScreen, whose first step (RegisterViewModel's
+# email step) asks for an email to send a verification code. No backend is
+# needed to render that step, so this runs in the CI emulator gate. Assertions
+# are on-screen copy so the flow survives restyles.
+appId: com.taleson2wheels.app
+---
+- clearState          # always start signed-out on the login screen
+- launchApp
+- assertVisible: "Sign in"
+
+# Go to the register flow.
+- tapOn: "New rider? Create an account"
+
+# RegisterScreen step 1 (email → verification code). This copy is distinct to
+# the register flow, so it proves we navigated to the right screen.
+- assertVisible: "Enter your email to get a verification code."
+- assertVisible: "Email"
+- assertVisible: "Send code"
+
+# The field accepts input without dispatching anything until "Send code".
+- tapOn: "Email"
+- inputText: "new-rider@example.com"
+- hideKeyboard
+
+# Return to login (system back) — the auth gate keeps us on LoginScreen.
+- back
+- assertVisible: "Sign in"
+- assertVisible: "New rider? Create an account"
