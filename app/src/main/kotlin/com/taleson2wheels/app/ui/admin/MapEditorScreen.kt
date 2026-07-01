@@ -1,5 +1,10 @@
 package com.taleson2wheels.app.ui.admin
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,12 +39,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import com.taleson2wheels.app.data.remote.dto.LiveBreak
 import com.taleson2wheels.app.data.remote.dto.MapAuditEntry
 import com.taleson2wheels.app.data.remote.dto.SmoothStats
@@ -132,6 +142,7 @@ private fun MapEditorContent(state: MapEditorUiState, viewModel: MapEditorViewMo
 
         RiderSection(state, viewModel)
         SmoothSection(state, viewModel)
+        GpxSection(state, viewModel)
         StatsSection(state, viewModel)
         BreaksSection(state, viewModel)
         AuditSection(state.audit)
@@ -216,6 +227,71 @@ private fun StatLine(label: String, value: String) {
         Text(value, style = MaterialTheme.typography.bodySmall)
     }
 }
+
+// ── GPX import (SAF file picker + multipart upload) ──────────────────────────
+
+private val GPX_MIME_FILTER = arrayOf(
+    "application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*",
+)
+
+@Composable
+private fun GpxSection(state: MapEditorUiState, viewModel: MapEditorViewModel) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val enabled = state.editable && !state.busy
+
+    fun pick(uri: Uri?, onBytes: (ByteArray, String) -> Unit) {
+        if (uri == null) return
+        scope.launch {
+            val file = readGpxFile(context, uri)
+            if (file == null) viewModel.reportError("Couldn't read that file")
+            else onBytes(file.second, file.first)
+        }
+    }
+    val recordedPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        pick(uri) { bytes, name -> viewModel.importRecordedGpx(bytes, name) }
+    }
+    val plannedPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        pick(uri) { bytes, name -> viewModel.importPlannedGpx(bytes, name) }
+    }
+
+    BrandCard {
+        SectionHeader("Import GPX")
+        Text(
+            "Replace ${state.selectedRiderName}'s recorded track, or the planned overlay, from a .gpx file (max 5 MB). Non-destructive — a smoothed/recorded track can be reverted.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SecondaryButton(
+                "Recorded track…",
+                onClick = { recordedPicker.launch(GPX_MIME_FILTER) },
+                enabled = enabled && state.selectedRiderId != null,
+                modifier = Modifier.weight(1f),
+            )
+            SecondaryButton(
+                "Planned route…",
+                onClick = { plannedPicker.launch(GPX_MIME_FILTER) },
+                enabled = enabled,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+/** Read a SAF document's display name + bytes off the main thread; null on failure. */
+private suspend fun readGpxFile(context: Context, uri: Uri): Pair<String, ByteArray>? =
+    withContext(Dispatchers.IO) {
+        runCatching {
+            val name = queryDisplayName(context, uri) ?: "upload.gpx"
+            val bytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: return@runCatching null
+            name to bytes
+        }.getOrNull()
+    }
+
+private fun queryDisplayName(context: Context, uri: Uri): String? =
+    context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
 
 // ── Stat overrides ────────────────────────────────────────────────────────────
 

@@ -202,6 +202,49 @@ class MapEditorViewModel(
         }
     }
 
+    // ── GPX import ───────────────────────────────────────────────────────────
+
+    /** Replace the selected rider's recorded track from a chosen .gpx file. */
+    fun importRecordedGpx(bytes: ByteArray, filename: String) {
+        if (tooLarge(bytes)) return
+        withRider { rider ->
+            runAction {
+                when (val r = mapEditRepository.importRecordedGpx(uiState.rideId, rider, filename, bytes)) {
+                    is ApiResult.Success -> {
+                        uiState = uiState.copy(message = "Imported ${r.data.inserted} points from $filename.")
+                        null
+                    }
+                    is ApiResult.Failure -> r.error.userMessage
+                }
+            }
+        }
+    }
+
+    /** Replace the planned-route overlay from a chosen .gpx file. */
+    fun importPlannedGpx(bytes: ByteArray, filename: String) {
+        if (tooLarge(bytes)) return
+        runAction {
+            when (val r = mapEditRepository.importPlannedGpx(uiState.rideId, filename, bytes)) {
+                is ApiResult.Success -> {
+                    uiState = uiState.copy(message = "Planned route imported (${r.data.waypointCount} points).")
+                    null
+                }
+                is ApiResult.Failure -> r.error.userMessage
+            }
+        }
+    }
+
+    /** Surface a file-read failure from the SAF picker (the screen reads the bytes). */
+    fun reportError(message: String) {
+        uiState = uiState.copy(actionError = message)
+    }
+
+    private fun tooLarge(bytes: ByteArray): Boolean {
+        val over = bytes.size > MAX_GPX_BYTES
+        if (over) uiState = uiState.copy(actionError = "GPX file too large (max 5 MB)")
+        return over
+    }
+
     // ── Breaks (list comes from the session; add needs a datetime picker — v2) ──
 
     fun deleteBreak(breakId: String) = runAction {
@@ -326,5 +369,10 @@ class MapEditorViewModel(
         emit("movingMinutesOverride", f.movingMinutes, integer = true)
         emit("elevationGainM", f.elevationGainM, integer = true)
         emit("elevationLossM", f.elevationLossM, integer = true)
+    }
+
+    private companion object {
+        // Matches the backend's MAX_GPX_BYTES so we reject early with a clear message.
+        const val MAX_GPX_BYTES = 5 * 1024 * 1024
     }
 }

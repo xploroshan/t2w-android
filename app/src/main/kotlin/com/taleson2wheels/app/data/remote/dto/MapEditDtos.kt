@@ -101,3 +101,22 @@ data class MapAuditEntry(
 
 @Serializable
 data class MapAuditResponse(val edits: List<MapAuditEntry> = emptyList())
+
+// --- GPX import (multipart) ---
+
+/** Response for POST .../track-from-gpx (recorded-track replacement). */
+@Serializable
+data class MapGpxTrackResponse(
+    val inserted: Int = 0,
+    val attachmentId: String? = null,
+    val distanceKm: Double = 0.0,
+)
+
+/** Response for POST .../planned-route/from-gpx. */
+@Serializable
+data class MapGpxPlannedResponse(
+    val waypointCount: Int = 0,
+    val distanceKm: Double = 0.0,
+    val attachmentId: String? = null,
+    val plannedRouteEditedAt: String? = null,
+)
