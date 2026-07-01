@@ -16,6 +16,7 @@ import com.taleson2wheels.app.data.remote.dto.RidePostResponse
 import com.taleson2wheels.app.data.remote.dto.RoleBody
 import com.taleson2wheels.app.data.repository.AdminRepository
 import com.taleson2wheels.app.testutil.MainDispatcherRule
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -44,6 +45,9 @@ class AdminUsersViewModelTest {
         val blockCalls = mutableListOf<Pair<String, Boolean>>()
         val roleCalls = mutableListOf<Pair<String, String>>()
         var actionThrows: Throwable? = null
+        // When set, rejectUser parks on this gate so a refresh can be interleaved
+        // between the action launching and its completion.
+        var rejectGate: CompletableDeferred<Unit>? = null
 
         override suspend fun users(status: String?, cursor: String?, limit: Int): Page<AdminUser> {
             lastStatus = status
@@ -58,6 +62,7 @@ class AdminUsersViewModelTest {
 
         override suspend fun rejectUser(id: String): IdResponse {
             rejectCalls += id
+            rejectGate?.await()
             actionThrows?.let { throw it }
             return IdResponse(id)
         }
@@ -172,6 +177,28 @@ class AdminUsersViewModelTest {
 
         assertNotNull(m.uiState.actionError)
         assertFalse("row must not have been mutated on failure", m.uiState.items.single().blocked)
+    }
+
+    @Test
+    fun rejecting_after_a_refresh_dropped_the_row_does_not_crash() = runTest(mainDispatcher.dispatcher) {
+        fake.page = Page(items = listOf(user("a")), nextCursor = null)
+        val m = vm(); advanceUntilIdle() // items = [a]
+
+        val gate = CompletableDeferred<Unit>()
+        fake.rejectGate = gate
+        m.reject("a")           // launches; rejectUser parks on the gate
+        advanceUntilIdle()      // action in flight, row still present
+
+        // A concurrent refresh (status filter) replaces the list without "a".
+        fake.page = Page(items = listOf(user("b")), nextCursor = null)
+        m.setStatus("active"); advanceUntilIdle()
+        assertEquals(listOf("b"), idsOf(m))
+
+        // Reject resumes now that its row is gone — the old eager first{} threw
+        // NoSuchElementException here and crashed the coroutine.
+        gate.complete(Unit); advanceUntilIdle()
+
+        assertEquals(listOf("b"), idsOf(m)) // no crash; removeRow("a") is a no-op
     }
 
     @Test

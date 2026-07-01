@@ -42,14 +42,17 @@ class AuthRepository(
 
     suspend fun login(email: String, password: String): ApiResult<UserDto> {
         val result = safeApiCall(json) {
+            // Drop any prior account's cached, viewer-specific data BEFORE contacting
+            // the server. Doing it first means a clear failure aborts the sign-in
+            // before any server-side state exists — instead of after a successful
+            // auth, which would surface as an opaque failure even though the account
+            // was authenticated (and, for register, the signup consumed). Fail-closed:
+            // a session is never established while a previous account's cached rows
+            // could survive on a shared device.
+            responseCache?.clearStrict()
             val res = authApi.login(
                 LoginRequest(email = email.trim().lowercase(), password = password, deviceId = deviceId),
             )
-            // Drop any prior account's cached, viewer-specific data BEFORE this
-            // user's bearer token goes live (session.save) — and fail the sign-in
-            // if it can't be cleared, rather than letting the new session read the
-            // previous account's cached rows on a shared device.
-            responseCache?.clearStrict()
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }
@@ -68,6 +71,11 @@ class AuthRepository(
         ridingExperience: String? = null,
     ): ApiResult<UserDto> {
         val result = safeApiCall(json) {
+            // Clear any prior account's cached data BEFORE the network call (see
+            // login()): a clear failure then aborts before the signup is consumed,
+            // so the user isn't shown a failure for an account that was actually
+            // created. Fail-closed against a shared-device cache leak.
+            responseCache?.clearStrict()
             val res = authApi.register(
                 RegisterRequest(
                     name = name.trim(),
@@ -79,10 +87,6 @@ class AuthRepository(
                     deviceId = deviceId,
                 ),
             )
-            // Clear any prior account's cached data before this session goes live
-            // (see login()); a failed clear fails the registration rather than
-            // leaking the previous user's cached rows.
-            responseCache?.clearStrict()
             session.save(Tokens(res.accessToken, res.refreshToken))
             res.user
         }

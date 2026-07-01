@@ -78,8 +78,13 @@ class AdminUsersViewModel(
     }
 
     fun approve(id: String) = act(id, { adminRepository.approveUser(id) }) { user ->
-        // In the pending view an approved user leaves the queue; otherwise update in place.
-        uiState = if (uiState.status == "pending") removeRow(id) else replaceRow(user)
+        // In the pending view an approved user leaves the queue; otherwise update in
+        // place (no-op if the row was refreshed away while the action was in flight).
+        uiState = when {
+            uiState.status == "pending" -> removeRow(id)
+            user != null -> replaceRow(user)
+            else -> uiState
+        }
     }
 
     fun reject(id: String) = act(id, { adminRepository.rejectUser(id) }) {
@@ -87,17 +92,17 @@ class AdminUsersViewModel(
     }
 
     fun setBlocked(id: String, blocked: Boolean) =
-        act(id, { adminRepository.setUserBlocked(id, blocked) }) { user -> uiState = replaceRow(user) }
+        act(id, { adminRepository.setUserBlocked(id, blocked) }) { user -> user?.let { uiState = replaceRow(it) } }
 
     fun setRole(id: String, role: String) =
-        act(id, { adminRepository.setUserRole(id, role) }) { user -> uiState = replaceRow(user) }
+        act(id, { adminRepository.setUserRole(id, role) }) { user -> user?.let { uiState = replaceRow(it) } }
 
     fun clearActionError() {
         if (uiState.actionError != null) uiState = uiState.copy(actionError = null)
     }
 
     /** Shared action bookkeeping: mark the row in-flight, run [block], surface errors. */
-    private fun act(id: String, block: suspend () -> ApiResult<*>, onSuccess: (AdminUser) -> Unit) {
+    private fun act(id: String, block: suspend () -> ApiResult<*>, onSuccess: (AdminUser?) -> Unit) {
         if (id in uiState.pendingActionIds) return
         uiState = uiState.copy(pendingActionIds = uiState.pendingActionIds + id)
         viewModelScope.launch {
@@ -105,10 +110,12 @@ class AdminUsersViewModel(
             uiState = uiState.copy(pendingActionIds = uiState.pendingActionIds - id)
             when (result) {
                 is ApiResult.Success<*> -> {
-                    val data = result.data
-                    // reject returns a String id; the rest return an AdminUser. The
-                    // String case is handled by the caller ignoring its arg.
-                    onSuccess(data as? AdminUser ?: uiState.items.first { it.id == id })
+                    // approve/block/role return the updated AdminUser; reject returns a
+                    // String id (its handler ignores the arg). Fall back to the current
+                    // row, or null if a concurrent refresh/filter dropped it — never
+                    // first{}, which would throw NoSuchElementException and crash.
+                    val user = result.data as? AdminUser ?: uiState.items.firstOrNull { it.id == id }
+                    onSuccess(user)
                 }
                 is ApiResult.Failure -> uiState = uiState.copy(actionError = result.error.userMessage)
             }

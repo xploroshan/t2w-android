@@ -11,6 +11,7 @@ import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.dto.RideCard
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.RidesRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 @Immutable
@@ -36,6 +37,14 @@ class RidesViewModel(
     var uiState by mutableStateOf(RidesUiState(isLoading = true))
         private set
 
+    // Cancel an in-flight first-page / next-page load when a refresh starts, and
+    // stamp each refresh with a generation token so a still-in-flight loadMore
+    // can't append its stale page onto (and corrupt the cursor of) a list the
+    // refresh has since replaced.
+    private var loadJob: Job? = null
+    private var loadMoreJob: Job? = null
+    private var generation = 0
+
     init {
         refresh()
         // Reflect a registration made deeper in the flow (ride detail → form) when
@@ -47,15 +56,21 @@ class RidesViewModel(
     }
 
     fun refresh() {
-        viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, error = null)
-            when (val result = ridesRepository.rides(limit = PAGE_SIZE)) {
-                is ApiResult.Success -> uiState = uiState.copy(
+        loadJob?.cancel()
+        loadMoreJob?.cancel()
+        val gen = ++generation
+        loadJob = viewModelScope.launch {
+            uiState = uiState.copy(isLoading = true, isLoadingMore = false, error = null)
+            // No explicit limit → the repository's DEFAULT_LIMIT, which is exactly
+            // the size its cacheable "rides:first" snapshot keys on (one source of
+            // truth; a local page-size constant could silently drift off it).
+            when (val result = ridesRepository.rides()) {
+                is ApiResult.Success -> if (gen == generation) uiState = uiState.copy(
                     isLoading = false,
                     rides = result.data.items,
                     nextCursor = result.data.nextCursor,
                 )
-                is ApiResult.Failure -> uiState = uiState.copy(
+                is ApiResult.Failure -> if (gen == generation) uiState = uiState.copy(
                     isLoading = false,
                     error = result.error.userMessage,
                 )
@@ -66,15 +81,19 @@ class RidesViewModel(
     fun loadMore() {
         val cursor = uiState.nextCursor
         if (cursor == null || uiState.isLoadingMore) return
-        viewModelScope.launch {
+        // The generation this page belongs to — if a refresh supersedes it before
+        // the response lands, discard the result instead of appending a stale page.
+        val gen = generation
+        loadMoreJob?.cancel()
+        loadMoreJob = viewModelScope.launch {
             uiState = uiState.copy(isLoadingMore = true, loadMoreError = null)
-            when (val result = ridesRepository.rides(cursor = cursor, limit = PAGE_SIZE)) {
-                is ApiResult.Success -> uiState = uiState.copy(
+            when (val result = ridesRepository.rides(cursor = cursor)) {
+                is ApiResult.Success -> if (gen == generation) uiState = uiState.copy(
                     isLoadingMore = false,
                     rides = uiState.rides + result.data.items,
                     nextCursor = result.data.nextCursor,
                 )
-                is ApiResult.Failure -> uiState = uiState.copy(
+                is ApiResult.Failure -> if (gen == generation) uiState = uiState.copy(
                     isLoadingMore = false,
                     loadMoreError = result.error.userMessage,
                 )
@@ -84,9 +103,5 @@ class RidesViewModel(
 
     fun logout() {
         viewModelScope.launch { authRepository.logout() }
-    }
-
-    private companion object {
-        const val PAGE_SIZE = 20
     }
 }
