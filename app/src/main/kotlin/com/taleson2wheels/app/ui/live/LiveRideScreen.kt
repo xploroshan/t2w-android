@@ -17,14 +17,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -39,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +50,11 @@ import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.components.BrandBackground
+import com.taleson2wheels.app.ui.components.BrandCard
+import com.taleson2wheels.app.ui.components.GradientButton
+import com.taleson2wheels.app.ui.components.SecondaryButton
+import com.taleson2wheels.app.ui.components.SectionHeader
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -134,6 +136,7 @@ fun LiveRideScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
@@ -144,41 +147,44 @@ fun LiveRideScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
-                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                    containerColor = Color.Transparent,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground,
                 ),
             )
         },
     ) { innerPadding ->
-        when {
-            state.isLoading -> LoadingView(Modifier.padding(innerPadding))
-            state.error != null && state.liveState == null ->
-                ErrorView(state.error, { viewModel.retry(rideId) }, Modifier.padding(innerPadding))
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                item { StatusBanner(state) }
-                if (state.riders.isNotEmpty()) {
-                    item { LiveMapCard(state.riders, state.liveState?.leadPath ?: emptyList()) }
-                }
-                state.metrics?.let { item { MetricsCard(it) } }
-                item { ShareCard(isSharing, uploaded, ::requestShare, onStop = { LiveLocationService.stop(context) }) }
-                if (state.isLive && !state.joined) {
-                    item {
-                        Button(
-                            onClick = { viewModel.join(rideId) },
-                            enabled = !state.isJoining,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) { Text(if (state.isJoining) "Joining…" else "Join the live ride") }
+        BrandBackground(Modifier.padding(innerPadding)) {
+            when {
+                state.isLoading -> LoadingView()
+                state.error != null && state.liveState == null ->
+                    ErrorView(state.error, { viewModel.retry(rideId) })
+                else -> LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    item { StatusBanner(state) }
+                    if (state.riders.isNotEmpty()) {
+                        item { LiveMapCard(state.riders, state.liveState?.leadPath ?: emptyList()) }
                     }
-                }
-                item { OrganizerControls(state, viewModel, rideId) }
-                if (state.riders.isNotEmpty()) {
-                    item { SectionHeader("Riders (${state.riders.size})") }
-                    items(state.riders, key = { it.userId }) { RiderRow(it) }
+                    state.metrics?.let { item { MetricsCard(it) } }
+                    item { ShareCard(isSharing, uploaded, ::requestShare, onStop = { LiveLocationService.stop(context) }) }
+                    if (state.isLive && !state.joined) {
+                        item {
+                            GradientButton(
+                                text = if (state.isJoining) "Joining…" else "Join the live ride",
+                                onClick = { viewModel.join(rideId) },
+                                enabled = !state.isJoining,
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                        }
+                    }
+                    item { OrganizerControls(state, viewModel, rideId) }
+                    if (state.riders.isNotEmpty()) {
+                        item { SectionHeader("Riders (${state.riders.size})") }
+                        items(state.riders, key = { it.userId }) { RiderRow(it) }
+                    }
                 }
             }
         }
@@ -195,8 +201,8 @@ private fun StatusBanner(state: LiveUiState) {
         state.isEnded -> "Ride ended" to MaterialTheme.colorScheme.onSurfaceVariant
         else -> (state.status ?: "Waiting") to MaterialTheme.colorScheme.onSurfaceVariant
     }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = MaterialTheme.typography.titleLarge, color = color, fontWeight = FontWeight.Bold)
         }
     }
@@ -204,8 +210,8 @@ private fun StatusBanner(state: LiveUiState) {
 
 @Composable
 internal fun MetricsCard(m: LiveMetrics) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Metric("Distance", "${"%.1f".format(m.distanceKm)} km", Modifier.weight(1f))
                 Metric("Avg", "${m.avgSpeedKmh.toInt()} km/h", Modifier.weight(1f))
@@ -231,29 +237,29 @@ internal fun MetricsCard(m: LiveMetrics) {
 private fun Metric(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(value, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
 @Composable
 private fun ShareCard(isSharing: Boolean, uploaded: Int, onShare: () -> Unit, onStop: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Share my location", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             if (isSharing) {
                 Text(
                     "Sharing live · $uploaded sent · keeps running in the background",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                OutlinedButton(onClick = onStop, modifier = Modifier.fillMaxWidth()) { Text("Stop sharing") }
+                SecondaryButton(text = "Stop sharing", onClick = onStop, modifier = Modifier.fillMaxWidth())
             } else {
                 Text(
                     "Broadcast your position to the group while the ride is live. Tracking continues even with the screen off.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-                FilledTonalButton(onClick = onShare, modifier = Modifier.fillMaxWidth()) { Text("Start sharing") }
+                GradientButton(text = "Start sharing", onClick = onShare, modifier = Modifier.fillMaxWidth())
             }
         }
     }
@@ -261,8 +267,8 @@ private fun ShareCard(isSharing: Boolean, uploaded: Int, onShare: () -> Unit, on
 
 @Composable
 private fun OrganizerControls(state: LiveUiState, viewModel: LiveRideViewModel, rideId: String) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    BrandCard(modifier = Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Organizer controls", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             Text(
                 "Only ride leads can start or control the session.",
@@ -272,43 +278,39 @@ private fun OrganizerControls(state: LiveUiState, viewModel: LiveRideViewModel, 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 when {
                     state.noSession || state.isEnded ->
-                        ControlButton("Start", !state.actionInFlight, Modifier.weight(1f)) { viewModel.control(rideId, "start") }
+                        GradientButton("Start", { viewModel.control(rideId, "start") }, Modifier.weight(1f), enabled = !state.actionInFlight)
                     state.isPaused ->
-                        ControlButton("Resume", !state.actionInFlight, Modifier.weight(1f)) { viewModel.control(rideId, "resume") }
+                        GradientButton("Resume", { viewModel.control(rideId, "resume") }, Modifier.weight(1f), enabled = !state.actionInFlight)
                     else ->
-                        ControlButton("Pause", !state.actionInFlight, Modifier.weight(1f)) { viewModel.control(rideId, "pause") }
+                        GradientButton("Pause", { viewModel.control(rideId, "pause") }, Modifier.weight(1f), enabled = !state.actionInFlight)
                 }
                 if (state.isLive || state.isPaused) {
-                    ControlButton("End", !state.actionInFlight, Modifier.weight(1f)) { viewModel.control(rideId, "end") }
+                    SecondaryButton("End", { viewModel.control(rideId, "end") }, Modifier.weight(1f), enabled = !state.actionInFlight)
                 }
             }
             if (state.isLive) {
-                OutlinedButton(
+                SecondaryButton(
+                    text = if (state.onBreak) "End break" else "Start break",
                     onClick = { viewModel.toggleBreak(rideId) },
                     enabled = !state.actionInFlight,
                     modifier = Modifier.fillMaxWidth(),
-                ) { Text(if (state.onBreak) "End break" else "Start break") }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ControlButton(label: String, enabled: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Button(onClick = onClick, enabled = enabled, modifier = modifier) { Text(label) }
-}
-
-@Composable
 internal fun RiderRow(rider: LiveRiderPosition) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    BrandCard(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(12.dp)) {
         Row(
-            Modifier.fillMaxWidth().padding(12.dp),
+            Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Avatar(url = rider.userAvatar, name = rider.userName, size = 36.dp)
             Column(Modifier.weight(1f)) {
-                Text(rider.userName.ifBlank { "Rider" }, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+                Text(rider.userName.ifBlank { "Rider" }, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 val tags = buildList {
                     if (rider.isLead) add("Lead")
                     if (rider.isSweep) add("Sweep")
@@ -325,9 +327,4 @@ internal fun RiderRow(rider: LiveRiderPosition) {
             }
         }
     }
-}
-
-@Composable
-private fun SectionHeader(text: String) {
-    Text(text, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
 }
