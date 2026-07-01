@@ -51,6 +51,7 @@ fun ProfileScreen(
     onChangePassword: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenContact: () -> Unit,
+    onOpenModeration: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(factory = factory),
 ) {
@@ -90,6 +91,7 @@ fun ProfileScreen(
                     onChangePassword = onChangePassword,
                     onOpenAbout = onOpenAbout,
                     onOpenContact = onOpenContact,
+                    onOpenModeration = onOpenModeration,
                 )
             }
         }
@@ -106,6 +108,7 @@ private fun ProfileBody(
     onChangePassword: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenContact: () -> Unit,
+    onOpenModeration: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -143,6 +146,15 @@ private fun ProfileBody(
         if (user.earnedBadges.isNotEmpty()) {
             item { SectionHeader("Badges") }
             items(user.earnedBadges, key = { it.id }) { BadgeRow(it) }
+        }
+
+        // Role-gated moderation entry. The exact per-toggle permission
+        // (canManageRegistrations) is enforced server-side; core members /
+        // superadmins see the entry and the screen surfaces a 403 if their
+        // toggle is off.
+        if (user.role == "core_member" || user.role == "superadmin") {
+            item { SectionHeader("Moderation") }
+            item { LinkRow("Review registrations", onOpenModeration) }
         }
 
         item { SectionHeader("More") }
