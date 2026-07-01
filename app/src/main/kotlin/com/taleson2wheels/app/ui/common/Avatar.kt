@@ -11,6 +11,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
@@ -34,7 +36,9 @@ fun Avatar(
             modifier = Modifier
                 .size(size)
                 .clip(shape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                // Announce the person's name, not the bare initial glyph.
+                .semantics(mergeDescendants = true) { contentDescription = name },
             contentAlignment = Alignment.Center,
         ) {
             Text(

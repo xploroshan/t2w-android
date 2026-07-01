@@ -17,6 +17,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.taleson2wheels.app.R
@@ -26,8 +28,10 @@ import com.taleson2wheels.app.ui.theme.T2WMuted
 
 @Composable
 fun LoadingView(modifier: Modifier = Modifier) {
+    val loadingLabel = stringResource(R.string.cd_loading)
     Column(
-        modifier = modifier.fillMaxSize(),
+        // A bare spinner announces nothing to TalkBack — label the container.
+        modifier = modifier.fillMaxSize().semantics { contentDescription = loadingLabel },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

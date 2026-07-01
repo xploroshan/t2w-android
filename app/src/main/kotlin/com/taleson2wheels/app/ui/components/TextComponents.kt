@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -73,7 +75,8 @@ fun SectionHeader(
         )
         Text(
             title,
-            modifier = Modifier.weight(1f, fill = false),
+            // Mark as a heading so TalkBack users can jump section-to-section.
+            modifier = Modifier.weight(1f, fill = false).semantics { heading() },
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground,
         )
