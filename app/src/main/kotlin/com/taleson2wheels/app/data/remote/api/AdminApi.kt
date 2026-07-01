@@ -1,7 +1,11 @@
 package com.taleson2wheels.app.data.remote.api
 
+import com.taleson2wheels.app.data.remote.dto.ActivityLogEntry
 import com.taleson2wheels.app.data.remote.dto.AdminUser
 import com.taleson2wheels.app.data.remote.dto.AdminUserResponse
+import com.taleson2wheels.app.data.remote.dto.BadgeDeleteResponse
+import com.taleson2wheels.app.data.remote.dto.BadgeInput
+import com.taleson2wheels.app.data.remote.dto.BadgeResponse
 import com.taleson2wheels.app.data.remote.dto.BlockBody
 import com.taleson2wheels.app.data.remote.dto.BlogCard
 import com.taleson2wheels.app.data.remote.dto.DropOutBody
@@ -141,4 +145,26 @@ interface AdminApi {
     /** Mark a rider dropped-out / restore (super-admin only). */
     @PATCH("api/v1/admin/rides/{id}/participation")
     suspend fun setParticipationDroppedOut(@Path("id") id: String, @Body body: DropOutBody): DropOutResult
+
+    // ── Badge CRUD ────────────────────────────────────────────────────────────
+    // Gated by canManageBadges. Listing stays public (ContentApi.badges); this
+    // owns create / update / delete. Create/update wrap the row in `{ badge }`.
+
+    @POST("api/v1/admin/badges")
+    suspend fun createBadge(@Body body: BadgeInput): BadgeResponse
+
+    @PATCH("api/v1/admin/badges/{id}")
+    suspend fun updateBadge(@Path("id") id: String, @Body body: BadgeInput): BadgeResponse
+
+    @DELETE("api/v1/admin/badges/{id}")
+    suspend fun deleteBadge(@Path("id") id: String): BadgeDeleteResponse
+
+    // ── Activity log ──────────────────────────────────────────────────────────
+    // Cursor-paginated audit trail, newest first. Gated by canViewActivityLog.
+
+    @GET("api/v1/admin/activity-log")
+    suspend fun activityLog(
+        @Query("cursor") cursor: String? = null,
+        @Query("limit") limit: Int = 20,
+    ): Page<ActivityLogEntry>
 }

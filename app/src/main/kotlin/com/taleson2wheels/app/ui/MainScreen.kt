@@ -74,9 +74,14 @@ object Routes {
     const val ADMIN_RIDE_NEW = "admin/rides/new"
     const val ADMIN_RIDE_EDIT = "admin/rides/{rideId}/edit"
     const val ADMIN_PARTICIPATION = "admin/rides/{rideId}/participation?title={title}"
+    const val ADMIN_BADGES = "admin/badges"
+    const val ADMIN_BADGE_NEW = "admin/badges/new"
+    const val ADMIN_BADGE_EDIT = "admin/badges/{badgeId}/edit"
+    const val ADMIN_ACTIVITY_LOG = "admin/activity-log"
     fun adminRideEdit(id: String) = "admin/rides/$id/edit"
     fun adminParticipation(id: String, title: String) =
         "admin/rides/$id/participation?title=${Uri.encode(title)}"
+    fun adminBadgeEdit(id: String) = "admin/badges/$id/edit"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
@@ -276,6 +281,8 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onOpenUsers = { navController.navigate(Routes.ADMIN_USERS) },
                     onOpenRides = { navController.navigate(Routes.ADMIN_RIDES) },
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
+                    onOpenBadges = { navController.navigate(Routes.ADMIN_BADGES) },
+                    onOpenActivityLog = { navController.navigate(Routes.ADMIN_ACTIVITY_LOG) },
                 )
             }
             composable(Routes.ADMIN_USERS) {
@@ -325,6 +332,39 @@ fun MainScreen(factory: AppViewModelFactory) {
                 com.taleson2wheels.app.ui.admin.AdminParticipationScreen(
                     rideId = entry.arguments?.getString("rideId").orEmpty(),
                     rideTitle = entry.arguments?.getString("title").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ADMIN_BADGES) {
+                com.taleson2wheels.app.ui.admin.AdminBadgesScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onCreateBadge = { navController.navigate(Routes.ADMIN_BADGE_NEW) },
+                    onEditBadge = { id -> navController.navigate(Routes.adminBadgeEdit(id)) },
+                )
+            }
+            composable(Routes.ADMIN_BADGE_NEW) {
+                com.taleson2wheels.app.ui.admin.AdminBadgeEditorScreen(
+                    badgeId = null,
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.ADMIN_BADGE_EDIT,
+                arguments = listOf(navArgument("badgeId") { type = NavType.StringType }),
+            ) { entry ->
+                com.taleson2wheels.app.ui.admin.AdminBadgeEditorScreen(
+                    badgeId = entry.arguments?.getString("badgeId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ADMIN_ACTIVITY_LOG) {
+                com.taleson2wheels.app.ui.admin.AdminActivityLogScreen(
                     factory = factory,
                     onBack = { navController.popBackStack() },
                 )

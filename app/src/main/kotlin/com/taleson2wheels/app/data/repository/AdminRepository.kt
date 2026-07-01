@@ -2,7 +2,10 @@ package com.taleson2wheels.app.data.repository
 
 import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.api.AdminApi
+import com.taleson2wheels.app.data.remote.dto.ActivityLogEntry
 import com.taleson2wheels.app.data.remote.dto.AdminUser
+import com.taleson2wheels.app.data.remote.dto.BadgeDto
+import com.taleson2wheels.app.data.remote.dto.BadgeInput
 import com.taleson2wheels.app.data.remote.dto.BlockBody
 import com.taleson2wheels.app.data.remote.dto.BlogCard
 import com.taleson2wheels.app.data.remote.dto.DropOutBody
@@ -118,4 +121,20 @@ class AdminRepository(
         droppedOut: Boolean,
     ): ApiResult<DropOutResult> =
         safeApiCall(json) { adminApi.setParticipationDroppedOut(rideId, DropOutBody(riderProfileId, droppedOut)) }
+
+    // ── Badge CRUD ──────────────────────────────────────────────────────────────
+
+    suspend fun createBadge(input: BadgeInput): ApiResult<BadgeDto> =
+        safeApiCall(json) { adminApi.createBadge(input).badge }
+
+    suspend fun updateBadge(id: String, input: BadgeInput): ApiResult<BadgeDto> =
+        safeApiCall(json) { adminApi.updateBadge(id, input).badge }
+
+    suspend fun deleteBadge(id: String): ApiResult<String> =
+        safeApiCall(json) { adminApi.deleteBadge(id).id }
+
+    // ── Activity log ──────────────────────────────────────────────────────────
+
+    suspend fun activityLog(cursor: String? = null, limit: Int = 20): ApiResult<Page<ActivityLogEntry>> =
+        safeApiCall(json) { adminApi.activityLog(cursor = cursor, limit = limit) }
 }

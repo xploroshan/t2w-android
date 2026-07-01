@@ -79,6 +79,12 @@ class ModerationViewModelTest {
             throw UnsupportedOperationException("not used")
         override suspend fun setParticipationDroppedOut(id: String, body: com.taleson2wheels.app.data.remote.dto.DropOutBody) =
             throw UnsupportedOperationException("not used")
+        override suspend fun createBadge(body: com.taleson2wheels.app.data.remote.dto.BadgeInput) =
+            throw UnsupportedOperationException("not used")
+        override suspend fun updateBadge(id: String, body: com.taleson2wheels.app.data.remote.dto.BadgeInput) =
+            throw UnsupportedOperationException("not used")
+        override suspend fun deleteBadge(id: String) = throw UnsupportedOperationException("not used")
+        override suspend fun activityLog(cursor: String?, limit: Int) = throw UnsupportedOperationException("not used")
     }
 
     private val fake = FakeAdminApi()
