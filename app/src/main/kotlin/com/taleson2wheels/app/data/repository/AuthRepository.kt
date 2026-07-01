@@ -36,9 +36,9 @@ class AuthRepository(
     private val pushTokenProvider: PushTokenProvider = NoOpPushTokenProvider(),
     private val appBuild: String = "",
     private val responseCache: ResponseCache? = null,
-) {
+) : AuthSession {
     /** Reactive session — UI observes this to gate login vs. the app shell. */
-    val tokens: StateFlow<Tokens?> = session.tokens
+    override val tokens: StateFlow<Tokens?> = session.tokens
 
     suspend fun login(email: String, password: String): ApiResult<UserDto> {
         val result = safeApiCall(json) {
@@ -92,7 +92,7 @@ class AuthRepository(
         return result
     }
 
-    suspend fun currentUser(): ApiResult<UserDto> =
+    override suspend fun currentUser(): ApiResult<UserDto> =
         safeApiCall(json) { authApi.me().user }
 
     suspend fun updateProfile(request: ProfileUpdateRequest): ApiResult<UserDto> =
