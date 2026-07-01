@@ -31,14 +31,15 @@ import com.taleson2wheels.app.ui.components.BrandCard
 /**
  * Role-gated admin hub — the entry point (from Profile) to the mobile admin
  * console. Each destination is enforced server-side, so a core member who lacks
- * a toggle simply sees that screen's 403. Rides / badges / activity-log
- * destinations are added in the follow-up admin PRs.
+ * a toggle simply sees that screen's 403. Badges / activity-log destinations are
+ * added in the follow-up admin PR.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminHubScreen(
     onBack: () -> Unit,
     onOpenUsers: () -> Unit,
+    onOpenRides: () -> Unit,
     onOpenModeration: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -72,6 +73,13 @@ fun AdminHubScreen(
                         title = "Users",
                         subtitle = "Approve, block and set roles",
                         onClick = onOpenUsers,
+                    )
+                }
+                item {
+                    HubRow(
+                        title = "Rides",
+                        subtitle = "Create, edit and manage participation",
+                        onClick = onOpenRides,
                     )
                 }
                 item {
