@@ -68,6 +68,8 @@ object Routes {
     const val ABOUT = "about"
     const val CONTACT = "contact"
     const val MODERATION = "moderation"
+    const val ADMIN_HUB = "admin"
+    const val ADMIN_USERS = "admin/users"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
@@ -258,7 +260,20 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenContact = { navController.navigate(Routes.CONTACT) },
+                    onOpenAdmin = { navController.navigate(Routes.ADMIN_HUB) },
+                )
+            }
+            composable(Routes.ADMIN_HUB) {
+                com.taleson2wheels.app.ui.admin.AdminHubScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenUsers = { navController.navigate(Routes.ADMIN_USERS) },
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
+                )
+            }
+            composable(Routes.ADMIN_USERS) {
+                com.taleson2wheels.app.ui.admin.AdminUsersScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.MODERATION) {

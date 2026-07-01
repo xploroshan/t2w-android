@@ -32,3 +32,43 @@ data class RegistrationModerationResponse(val registration: RegistrationModerati
  */
 @Serializable
 data class ModerationAction(val action: String)
+
+// ── Admin user management (GET/POST /api/v1/admin/users*) ────────────────────
+
+/**
+ * An account-holder in the admin users list. Mirrors the `AdminUser` schema.
+ * `lastLoginAt` is present only when the requester is a super admin.
+ */
+@Serializable
+data class AdminUser(
+    val id: String,
+    val name: String,
+    val email: String,
+    val role: String,
+    val isApproved: Boolean,
+    val blocked: Boolean,
+    val blockedAt: String? = null,
+    val phone: String? = null,
+    val city: String? = null,
+    val linkedRiderId: String? = null,
+    val totalKm: Double = 0.0,
+    val ridesCompleted: Int = 0,
+    val createdAt: String? = null,
+    val lastLoginAt: String? = null,
+)
+
+/** approve / block / role endpoints wrap the updated row in `{ "user": ... }`. */
+@Serializable
+data class AdminUserResponse(val user: AdminUser)
+
+/** Body for the block endpoint. */
+@Serializable
+data class BlockBody(val blocked: Boolean)
+
+/** Body for the set-role endpoint. */
+@Serializable
+data class RoleBody(val role: String)
+
+/** `{ "id": ... }` returned by the reject endpoint. */
+@Serializable
+data class IdResponse(val id: String)
