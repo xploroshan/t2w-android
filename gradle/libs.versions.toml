@@ -14,6 +14,10 @@ datastore = "1.1.1"
 coil = "2.7.0"
 mapsCompose = "6.2.1"
 playServicesMaps = "19.0.0"
+# Mapbox Maps SDK for Android v11 — powers the Relive 3D-terrain flyover (Google
+# maps-compose can't render true 3D terrain). Pulled from Mapbox's private Maven
+# repo, which needs a secret MAPBOX_DOWNLOADS_TOKEN (see docs/SETUP_SECRETS.md).
+mapbox = "11.9.0"
 room = "2.6.1"
 ksp = "2.0.21-1.0.28"
 paparazzi = "2.0.0-alpha01"
@@ -59,6 +63,10 @@ coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coi
 # Maps (live-ride map; renders once a Maps API key is supplied)
 maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 play-services-maps = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+# Mapbox Maps SDK (Relive 3D flyover). Declared here but wired into :app only when
+# the Relive screen lands — activating it needs MAPBOX_DOWNLOADS_TOKEN configured
+# for the Mapbox Maven repo (see settings.gradle.kts + docs/SETUP_SECRETS.md).
+mapbox-maps = { group = "com.mapbox.maps", name = "android", version.ref = "mapbox" }
 
 # Test
 junit = { group = "junit", name = "junit", version.ref = "junit" }

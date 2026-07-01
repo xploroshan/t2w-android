@@ -74,6 +74,26 @@ run {
     }
 }
 
+// Mapbox PUBLIC access token (pk.*) for the Relive 3D flyover — read at runtime
+// (BuildConfig.MAPBOX_ACCESS_TOKEN) and set on MapboxOptions before a MapView is
+// created. Like MAPS_API_KEY this is optional/graceful (the Relive screen shows a
+// "set your Mapbox token" hint when blank), so a token-free build still assembles
+// — but warn loudly on a release. NOTE: this is the RUNTIME token, separate from
+// the build-time MAPBOX_DOWNLOADS_TOKEN (secret sk.*) that authenticates the
+// Mapbox Maven repo in settings.gradle.kts. See docs/SETUP_SECRETS.md.
+val mapboxToken = secretOr("MAPBOX_ACCESS_TOKEN", "")
+run {
+    val buildingRelease = gradle.startParameter.taskNames.any { it.contains("elease") }
+    if (buildingRelease && mapboxToken.isBlank()) {
+        logger.warn(
+            "\n⚠️  RELEASE build with no MAPBOX_ACCESS_TOKEN — the Relive 3D flyover will show a " +
+                "\"set token\" placeholder instead of the map. Provide it via secrets.properties " +
+                "(MAPBOX_ACCESS_TOKEN=pk...) or -PMAPBOX_ACCESS_TOKEN=... before shipping. " +
+                "See docs/SETUP_SECRETS.md.\n",
+        )
+    }
+}
+
 android {
     namespace = "com.taleson2wheels.app"
     compileSdk = 35
@@ -115,6 +135,7 @@ android {
                 "API_BASE_URL",
                 "\"${secretOr("T2W_API_BASE_URL_DEBUG", "http://10.0.2.2:3000/")}\"",
             )
+            buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
         }
         release {
             // Real release keystore when configured; otherwise debug-signed so CI
@@ -135,6 +156,7 @@ android {
                 "API_BASE_URL",
                 "\"${secretOr("T2W_API_BASE_URL", "https://taleson2wheels.com/")}\"",
             )
+            buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
         }
         // A release-like variant for Macrobenchmark: minified/shrunk like release
         // (so startup numbers reflect production) but debug-signed and marked

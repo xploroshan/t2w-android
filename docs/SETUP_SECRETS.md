@@ -1,10 +1,11 @@
 # Configuring secrets (a beginner's walkthrough)
 
-This guide is for setting up the four pieces of external configuration the app
-needs to ship a real release. **You do not need any of these to build and run
-the app** — the project is designed to compile and run with all of them missing
-(maps show blank, push is silent, crashes aren't reported, and the release APK
-is debug‑signed). Add them when you're ready to go to production.
+This guide is for setting up the pieces of external configuration the app needs
+to ship a real release. **You do not need any of these to build and run the
+app** — the project is designed to compile and run with all of them missing
+(maps show blank, the 3D flyover shows a placeholder, push is silent, crashes
+aren't reported, and the release APK is debug‑signed). Add them when you're
+ready to go to production.
 
 Each secret lives in a **git‑ignored** file at the repo root or in `app/`, so
 nothing here ever gets committed. The files already listed in `.gitignore` are:
@@ -212,12 +213,119 @@ so CI and fresh clones never break.
 
 ---
 
+## 5. Mapbox tokens (Relive 3D flyover)
+
+**What it's for:** the **Relive** screen replays a finished ride as an animated
+3D‑terrain flyover, which needs Mapbox (Google Maps can't render true 3D
+terrain). Without it the rest of the app is unaffected — the Relive screen just
+shows a "set your Mapbox token" hint.
+
+Mapbox is unusual: it needs **two different tokens**, and they are NOT
+interchangeable. Read this bit slowly the first time.
+
+| # | Token | Starts with | Secret? | Used | Goes in |
+|---|---|---|---|---|---|
+| A | **Public / runtime** | `pk.` | No (it's embedded in the app) | at run time, to load the map | `secrets.properties` → `MAPBOX_ACCESS_TOKEN` |
+| B | **Secret / downloads** | `sk.` | **Yes — never commit** | at build time, to download the Mapbox SDK | `~/.gradle/gradle.properties` → `MAPBOX_DOWNLOADS_TOKEN` |
+
+> **Can I reuse the website's Mapbox token?** Only token **A** (the `pk.`), and
+> only if the website's token has **no URL restrictions** — a web token locked to
+> your website's domain will silently fail in the app (native requests carry no
+> browser origin for Mapbox to match). Recommended: make a **separate app token**
+> so the web token can stay URL‑restricted. Token **B** is Android‑only; the
+> website has no equivalent, so you must create it fresh regardless.
+
+### Step 1 — create a Mapbox account
+
+1. Go to <https://account.mapbox.com/auth/signup/> and sign up (the free tier is
+   generous — 25k+ map loads/month). Verify your email.
+2. You'll land on the **Account** page at <https://account.mapbox.com/>.
+
+### Step 2 — get token A (public `pk.`)
+
+1. On the Account page scroll to **Access tokens**. There's a **Default public
+   token** that already starts with `pk.` — you can use it, but better:
+2. Click **Create a token**. Name it `t2w-android-app`.
+3. Under **Scopes**, leave the default *public* scopes ticked (Styles:Read,
+   Styles:Tiles, Fonts:Read, Datasets:Read, Vision:Read) — these are all a map
+   needs. Do **not** tick any secret scopes here.
+4. Leave **URL restrictions empty** (native apps can't use them). Click
+   **Create token** and **Copy** the `pk....` value.
+
+### Step 3 — get token B (secret `sk.` with Downloads:Read)
+
+1. Back on **Access tokens** → **Create a token**. Name it
+   `t2w-android-downloads`.
+2. Under **Scopes**, scroll to the **Secret scopes** section and tick
+   **`Downloads:Read`**. (Ticking any secret scope makes the whole token secret —
+   it will start with `sk.`.)
+3. Click **Create token**. Mapbox shows the `sk....` value **once** — copy it
+   now and keep it somewhere safe. If you lose it, delete it and make a new one.
+
+### Step 4 — put token A in the app
+
+Add it to `secrets.properties` (repo root, git‑ignored):
+
+```properties
+MAPBOX_ACCESS_TOKEN=pk.eyJ1Ijoi...your-public-token
+```
+
+The build exposes it as `BuildConfig.MAPBOX_ACCESS_TOKEN`; the Relive screen sets
+it on `MapboxOptions.accessToken` at runtime — you never paste it into source.
+
+### Step 5 — put token B in your global Gradle config
+
+Token B authenticates the download of the Mapbox SDK, so it must be readable by
+Gradle **for every build on your machine** — it lives **outside the repo**, in
+your user‑level Gradle properties (create the file if it doesn't exist):
+
+- **macOS / Linux:** `~/.gradle/gradle.properties`
+- **Windows:** `C:\Users\<you>\.gradle\gradle.properties`
+
+Add one line:
+
+```properties
+MAPBOX_DOWNLOADS_TOKEN=sk.eyJ1Ijoi...your-secret-downloads-token
+```
+
+> Why here and not in the repo? Because it's a **secret** and it's needed before
+> the project's own files are read (to fetch the SDK). Putting it in your global
+> Gradle config keeps it off every commit automatically. (An env var
+> `MAPBOX_DOWNLOADS_TOKEN=...` also works, e.g. in CI — see below.)
+
+### Step 6 — rebuild
+
+```bash
+./gradlew clean :app:assembleDebug
+```
+
+If token B is wrong/missing you'll see a `401 Unauthorized` from
+`api.mapbox.com` when Gradle tries to fetch `com.mapbox.maps:android` — that
+means fix `MAPBOX_DOWNLOADS_TOKEN`. If token A is missing the build still
+succeeds; only the Relive flyover shows its placeholder.
+
+### CI
+
+For GitHub Actions, add **`MAPBOX_DOWNLOADS_TOKEN`** (the `sk.`) as a repository
+**secret** and export it as an env var for the build step; add
+**`MAPBOX_ACCESS_TOKEN`** (the `pk.`) the same way and write it into
+`secrets.properties` during the workflow. Both are wired for local dev today; the
+CI step is added when the Relive screen lands.
+
+> **Golden rule (again):** the `sk.` downloads token is a real secret — never
+> commit it, never paste it in chat/PRs. If it leaks, delete it at
+> <https://account.mapbox.com/access-tokens/> and make a new one.
+
+---
+
 ## Quick checklist
 
 | Secret | File | Where to get it | App works without it? |
 |---|---|---|---|
 | API base URL | `secrets.properties` → `T2W_API_BASE_URL*` | your backend host | Yes (defaults to prod/emulator) |
 | Maps key | `secrets.properties` → `MAPS_API_KEY` | Google Cloud Console | Yes (blank map) |
+| Mapbox runtime (`pk.`) | `secrets.properties` → `MAPBOX_ACCESS_TOKEN` | account.mapbox.com → Tokens | Yes (Relive placeholder) |
+| Mapbox downloads (`sk.`) | `~/.gradle/gradle.properties` → `MAPBOX_DOWNLOADS_TOKEN` | account.mapbox.com → Tokens (Downloads:Read) | Yes, until the Relive screen is wired |
 | FCM | `app/google-services.json` | Firebase Console | Yes (no push) |
 | Sentry DSN | `secrets.properties` → `SENTRY_DSN` | sentry.io | Yes (no crash reports) |
 | Release signing | `keystore.properties` + `*.jks` | `keytool` (you generate it) | Yes (debug‑signed) |
