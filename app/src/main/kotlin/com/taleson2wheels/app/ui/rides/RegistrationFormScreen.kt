@@ -6,17 +6,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.taleson2wheels.app.data.remote.dto.RegField
+import com.taleson2wheels.app.data.remote.dto.RegPaymentConfig
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.auth.AuthErrorText
 import com.taleson2wheels.app.ui.auth.AuthField
@@ -33,6 +46,7 @@ fun RegistrationFormScreen(
     onBack: () -> Unit,
     viewModel: RegistrationViewModel = viewModel(factory = factory),
 ) {
+    androidx.compose.runtime.LaunchedEffect(rideId) { viewModel.load(rideId) }
     val state = viewModel.uiState
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -45,50 +59,195 @@ fun RegistrationFormScreen(
     }
 
     AuthScaffold(title = "Register", onBack = onBack) { m ->
-        if (state.done) {
-            Text("You're registered for", style = MaterialTheme.typography.bodyLarge)
-            Text(rideTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
-            Text(
-                "Confirmation: ${state.confirmationCode}",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                "Your registration is pending confirmation by the T2W team.",
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            AuthPrimaryButton("Done", enabled = true, loading = false, onClick = onBack, modifier = m)
-            return@AuthScaffold
+        when {
+            state.done -> {
+                Text("You're registered for", style = MaterialTheme.typography.bodyLarge)
+                Text(rideTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+                Text(
+                    "Confirmation: ${state.confirmationCode}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    "Your registration is pending confirmation by the T2W team.",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                AuthPrimaryButton("Done", enabled = true, loading = false, onClick = onBack, modifier = m)
+            }
+
+            state.isLoadingConfig -> {
+                Text("Loading registration form…", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            state.config == null -> {
+                AuthErrorText(state.configError ?: "Couldn't load the registration form.", m)
+                AuthPrimaryButton("Retry", enabled = true, loading = false, onClick = { viewModel.load(rideId) }, modifier = m)
+            }
+
+            else -> {
+                val config = state.config
+                Text(rideTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+
+                config.fields.forEachIndexed { index, field ->
+                    RegistrationField(
+                        field = field,
+                        value = state.values[field.key].orEmpty(),
+                        enabled = !state.isSubmitting,
+                        isLast = index == config.fields.lastIndex,
+                        onValueChange = { viewModel.onFieldChange(field.key, it) },
+                        modifier = m,
+                    )
+                }
+
+                PaymentSection(
+                    payment = config.payment,
+                    isUploading = state.isUploading,
+                    hasScreenshot = state.paymentScreenshotUrl != null,
+                    upiTransactionId = state.upiTransactionId,
+                    onPickScreenshot = { pickImage.launch("image/*") },
+                    onUpiTransactionIdChange = viewModel::onUpiTransactionIdChange,
+                    enabled = !state.isSubmitting,
+                    modifier = m,
+                )
+
+                if (config.requireCancellationAgreement) {
+                    if (config.cancellationText.isNotBlank()) {
+                        Text(
+                            config.cancellationText,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    CheckRow("I agree to the cancellation terms", state.agreedCancellationTerms, viewModel::onAgreeCancellation, !state.isSubmitting)
+                }
+                if (config.requireIndemnity) {
+                    CheckRow("I accept the indemnity / liability waiver", state.agreedIndemnity, viewModel::onAgreeIndemnity, !state.isSubmitting)
+                }
+
+                AuthErrorText(state.error, m)
+                AuthPrimaryButton("Submit registration", state.canSubmit, state.isSubmitting, { viewModel.submit(rideId) }, m)
+            }
         }
+    }
+}
 
-        Text(rideTitle, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground)
+@Composable
+private fun RegistrationField(
+    field: RegField,
+    value: String,
+    enabled: Boolean,
+    isLast: Boolean,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier,
+) {
+    val label = if (field.required) "${field.label} *" else field.label
+    if (field.type == "select") {
+        SelectField(label = label, value = value, options = field.options, enabled = enabled, onValueChange = onValueChange, modifier = modifier)
+    } else {
+        AuthField(
+            value = value,
+            onValueChange = onValueChange,
+            label = label,
+            modifier = modifier,
+            enabled = enabled,
+            keyboardType = when (field.type) {
+                "tel" -> KeyboardType.Phone
+                "email" -> KeyboardType.Email
+                else -> KeyboardType.Text
+            },
+            imeAction = if (isLast) ImeAction.Done else ImeAction.Next,
+        )
+    }
+}
 
-        AuthField(state.riderName, viewModel::onRiderNameChange, "Name (optional — defaults to your profile)", m, !state.isSubmitting)
-        AuthField(state.email, viewModel::onEmailChange, "Email (optional)", m, !state.isSubmitting, keyboardType = KeyboardType.Email)
-        AuthField(state.phone, viewModel::onPhoneChange, "Phone", m, !state.isSubmitting, keyboardType = KeyboardType.Phone)
-        AuthField(state.emergencyContactName, viewModel::onEmergencyNameChange, "Emergency contact name", m, !state.isSubmitting)
-        AuthField(state.emergencyContactPhone, viewModel::onEmergencyPhoneChange, "Emergency contact phone", m, !state.isSubmitting, keyboardType = KeyboardType.Phone)
-        AuthField(state.bloodGroup, viewModel::onBloodGroupChange, "Blood group", m, !state.isSubmitting)
-        AuthField(state.vehicleModel, viewModel::onVehicleModelChange, "Vehicle model", m, !state.isSubmitting)
-        AuthField(state.vehicleRegNumber, viewModel::onVehicleRegChange, "Vehicle reg. number", m, !state.isSubmitting)
-        AuthField(state.tshirtSize, viewModel::onTshirtChange, "T-shirt size", m, !state.isSubmitting)
-        AuthField(state.upiTransactionId, viewModel::onUpiChange, "UPI transaction ID", m, !state.isSubmitting, imeAction = ImeAction.Done)
+/** A dropdown-style select mirroring the auth text-field look. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectField(
+    label: String,
+    value: String,
+    options: List<String>,
+    enabled: Boolean,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { if (enabled) expanded = it },
+        modifier = modifier,
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            enabled = enabled,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            shape = MaterialTheme.shapes.medium,
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable, enabled),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onValueChange(option)
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
 
-        OutlinedButton(onClick = { pickImage.launch("image/*") }, enabled = !state.isUploading, modifier = m) {
+@Composable
+private fun PaymentSection(
+    payment: RegPaymentConfig,
+    isUploading: Boolean,
+    hasScreenshot: Boolean,
+    upiTransactionId: String,
+    onPickScreenshot: () -> Unit,
+    onUpiTransactionIdChange: (String) -> Unit,
+    enabled: Boolean,
+    modifier: Modifier,
+) {
+    if (payment.mode == "none") return
+    if (payment.fee > 0) {
+        Text(
+            "Fee: ₹%,.0f".format(payment.fee),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+    payment.upiIds.forEach { upi ->
+        Text("UPI · ${upi.label}: ${upi.id}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    payment.bankAccounts.forEach { bank ->
+        Text("Bank · ${bank.label}: ${bank.details}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (payment.mode == "screenshot" || payment.mode == "both") {
+        OutlinedButton(onClick = onPickScreenshot, enabled = enabled && !isUploading, modifier = modifier) {
             Text(
                 when {
-                    state.isUploading -> "Uploading…"
-                    state.paymentScreenshotUrl != null -> "✓ Payment screenshot attached"
+                    isUploading -> "Uploading…"
+                    hasScreenshot -> "✓ Payment screenshot attached"
                     else -> "Attach payment screenshot"
                 },
             )
         }
-
-        CheckRow("I agree to the cancellation terms", state.agreedCancellationTerms, viewModel::onAgreeCancellation, !state.isSubmitting)
-        CheckRow("I accept the indemnity / liability waiver", state.agreedIndemnity, viewModel::onAgreeIndemnity, !state.isSubmitting)
-
-        AuthErrorText(state.error, m)
-        AuthPrimaryButton("Submit registration", state.canSubmit, state.isSubmitting, { viewModel.submit(rideId) }, m)
+    }
+    if (payment.mode == "transaction_id" || payment.mode == "both") {
+        AuthField(
+            value = upiTransactionId,
+            onValueChange = onUpiTransactionIdChange,
+            label = "UPI transaction ID",
+            modifier = modifier,
+            enabled = enabled,
+            imeAction = ImeAction.Done,
+        )
     }
 }
 
