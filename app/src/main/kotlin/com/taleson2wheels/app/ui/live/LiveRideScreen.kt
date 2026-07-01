@@ -55,6 +55,7 @@ import com.taleson2wheels.app.ui.components.BrandCard
 import com.taleson2wheels.app.ui.components.GradientButton
 import com.taleson2wheels.app.ui.components.SecondaryButton
 import com.taleson2wheels.app.ui.components.SectionHeader
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -214,17 +215,17 @@ internal fun MetricsCard(m: LiveMetrics) {
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Metric("Distance", "${"%.1f".format(m.distanceKm)} km", Modifier.weight(1f))
-                Metric("Avg", "${m.avgSpeedKmh.toInt()} km/h", Modifier.weight(1f))
-                Metric("Max", "${m.maxSpeedKmh.toInt()} km/h", Modifier.weight(1f))
+                Metric("Avg", "${m.avgSpeedKmh.roundToInt()} km/h", Modifier.weight(1f))
+                Metric("Max", "${m.maxSpeedKmh.roundToInt()} km/h", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Metric("Riders", "${m.riderCount}", Modifier.weight(1f))
-                Metric("Elapsed", "${m.elapsedMinutes.toInt()} min", Modifier.weight(1f))
-                Metric("Moving", "${m.movingMinutes.toInt()} min", Modifier.weight(1f))
+                Metric("Elapsed", "${m.elapsedMinutes.roundToInt()} min", Modifier.weight(1f))
+                Metric("Moving", "${m.movingMinutes.roundToInt()} min", Modifier.weight(1f))
             }
             if (m.breakCount > 0) {
                 Text(
-                    "${m.breakCount} break(s) · ${m.breakMinutes.toInt()} min",
+                    "${m.breakCount} break(s) · ${m.breakMinutes.roundToInt()} min",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -315,7 +316,7 @@ internal fun RiderRow(rider: LiveRiderPosition) {
                     if (rider.isLead) add("Lead")
                     if (rider.isSweep) add("Sweep")
                     if (rider.isDeviated) add("Off-route")
-                    rider.speed?.let { add("${(it * 3.6).toInt()} km/h") }
+                    rider.speed?.let { add("${(it * 3.6).roundToInt()} km/h") }
                 }
                 if (tags.isNotEmpty()) {
                     Text(

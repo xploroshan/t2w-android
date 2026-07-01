@@ -41,6 +41,7 @@ import com.taleson2wheels.app.ui.common.LoadingView
 import com.taleson2wheels.app.ui.components.BrandBackground
 import com.taleson2wheels.app.ui.components.BrandCard
 import com.taleson2wheels.app.ui.components.SectionHeader
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +93,10 @@ fun LiveInsightsScreen(
                     val board = state.analytics?.leaderboard ?: emptyList()
                     if (board.isNotEmpty()) {
                         item { SectionHeader("Distance leaderboard") }
-                        itemsIndexed(board, key = { _, r -> r.userId.ifBlank { r.name } }) { i, rider ->
+                        // Index-prefixed so blank/duplicate userIds (the analytics
+                        // model tolerates anonymized/merged riders) can't collide and
+                        // crash the LazyColumn with a duplicate-key exception.
+                        itemsIndexed(board, key = { i, r -> "$i-${r.userId}" }) { i, rider ->
                             LeaderRow(rank = i + 1, rider = rider)
                         }
                     }
@@ -109,18 +113,18 @@ private fun SummaryCard(m: LiveMetrics) {
             Text("Summary", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Stat("Distance", "${"%.1f".format(m.distanceKm)} km", Modifier.weight(1f))
-                Stat("Avg", "${m.avgSpeedKmh.toInt()} km/h", Modifier.weight(1f))
-                Stat("Max", "${m.maxSpeedKmh.toInt()} km/h", Modifier.weight(1f))
+                Stat("Avg", "${m.avgSpeedKmh.roundToInt()} km/h", Modifier.weight(1f))
+                Stat("Max", "${m.maxSpeedKmh.roundToInt()} km/h", Modifier.weight(1f))
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Stat("Moving", "${m.movingMinutes.toInt()} min", Modifier.weight(1f))
-                Stat("Elapsed", "${m.elapsedMinutes.toInt()} min", Modifier.weight(1f))
+                Stat("Moving", "${m.movingMinutes.roundToInt()} min", Modifier.weight(1f))
+                Stat("Elapsed", "${m.elapsedMinutes.roundToInt()} min", Modifier.weight(1f))
                 Stat("Breaks", "${m.breakCount}", Modifier.weight(1f))
             }
             if (m.elevationGainM != null || m.elevationLossM != null) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Stat("Climb", "${(m.elevationGainM ?: 0.0).toInt()} m", Modifier.weight(1f))
-                    Stat("Descent", "${(m.elevationLossM ?: 0.0).toInt()} m", Modifier.weight(1f))
+                    Stat("Climb", "${(m.elevationGainM ?: 0.0).roundToInt()} m", Modifier.weight(1f))
+                    Stat("Descent", "${(m.elevationLossM ?: 0.0).roundToInt()} m", Modifier.weight(1f))
                     Stat("Riders", "${m.riderCount}", Modifier.weight(1f))
                 }
             }
@@ -183,7 +187,7 @@ private fun LeaderRow(rank: Int, rider: AnalyticsRider) {
             Column(Modifier.weight(1f)) {
                 Text(rider.name.ifBlank { "Rider" }, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
                 Text(
-                    "${rider.movingMinutes.toInt()} min · ${rider.avgSpeedKmh.toInt()} km/h avg",
+                    "${rider.movingMinutes.roundToInt()} min · ${rider.avgSpeedKmh.roundToInt()} km/h avg",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
