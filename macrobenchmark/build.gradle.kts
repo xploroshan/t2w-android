@@ -1,6 +1,9 @@
 plugins {
     alias(libs.plugins.android.test)
     alias(libs.plugins.kotlin.android)
+    // Producer side: turns BaselineProfileGenerator's output into a profile the
+    // :app module consumes (see :app build.gradle.kts baselineProfile(project(...))).
+    alias(libs.plugins.androidx.baselineprofile)
 }
 
 android {
