@@ -4,9 +4,12 @@ import com.taleson2wheels.app.data.remote.dto.MapAddBreakRequest
 import com.taleson2wheels.app.data.remote.dto.MapAuditResponse
 import com.taleson2wheels.app.data.remote.dto.MapBreakResponse
 import com.taleson2wheels.app.data.remote.dto.MapDeleteResponse
+import com.taleson2wheels.app.data.remote.dto.MapDeleteTrackPointsRequest
 import com.taleson2wheels.app.data.remote.dto.MapDeletedResponse
 import com.taleson2wheels.app.data.remote.dto.MapGpxPlannedResponse
 import com.taleson2wheels.app.data.remote.dto.MapGpxTrackResponse
+import com.taleson2wheels.app.data.remote.dto.MapPlannedRouteRequest
+import com.taleson2wheels.app.data.remote.dto.MapPlannedRouteResponse
 import com.taleson2wheels.app.data.remote.dto.MapRevertRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothResponse
@@ -21,6 +24,7 @@ import retrofit2.http.HTTP
 import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
@@ -54,6 +58,14 @@ interface MapEditApi {
     // DELETE with a body needs @HTTP(hasBody = true) — @DELETE forbids @Body.
     @HTTP(method = "DELETE", path = "api/v1/rides/{id}/live/map-edit/smooth-track", hasBody = true)
     suspend fun revertSmooth(@Path("id") id: String, @Body body: MapRevertRequest): MapDeletedResponse
+
+    // --- Track-point trim (bulk delete by time range; DELETE with a body) ---
+    @HTTP(method = "DELETE", path = "api/v1/rides/{id}/live/map-edit/track-points", hasBody = true)
+    suspend fun deleteTrackPoints(@Path("id") id: String, @Body body: MapDeleteTrackPointsRequest): MapDeletedResponse
+
+    // --- Planned-route replace ---
+    @PUT("api/v1/rides/{id}/live/map-edit/planned-route")
+    suspend fun setPlannedRoute(@Path("id") id: String, @Body body: MapPlannedRouteRequest): MapPlannedRouteResponse
 
     // --- GPX import (multipart) ---
     @Multipart

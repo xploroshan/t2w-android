@@ -1,5 +1,7 @@
 package com.taleson2wheels.app.ui.admin
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
@@ -32,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -41,6 +44,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -61,7 +65,10 @@ import com.taleson2wheels.app.ui.components.BrandCard
 import com.taleson2wheels.app.ui.components.GradientButton
 import com.taleson2wheels.app.ui.components.SecondaryButton
 import com.taleson2wheels.app.ui.components.SectionHeader
+import java.time.Instant
 import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.util.Calendar
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,14 +145,132 @@ private fun MapEditorContent(state: MapEditorUiState, viewModel: MapEditorViewMo
             }
         }
 
-        MapEditorMapCard(recordedPath = state.recordedPath, plannedRoute = state.plannedRoute)
+        val pe = state.plannedEdit
+        MapEditorMapCard(
+            recordedPath = state.recordedPath,
+            plannedRoute = state.plannedRoute,
+            editWaypoints = pe?.waypoints,
+            selectedWaypoint = pe?.selectedIndex,
+            onWaypointTap = { viewModel.selectPlannedWaypoint(it) },
+            onMapTap = { lat, lng -> viewModel.onPlannedMapTap(lat, lng) },
+        )
 
         RiderSection(state, viewModel)
+        PlannedRouteSection(state, viewModel)
         SmoothSection(state, viewModel)
         GpxSection(state, viewModel)
+        TrimSection(state, viewModel)
         StatsSection(state, viewModel)
         BreaksSection(state, viewModel)
         AuditSection(state.audit)
+    }
+}
+
+// ── Planned-route edit ───────────────────────────────────────────────────────
+
+@Composable
+private fun PlannedRouteSection(state: MapEditorUiState, viewModel: MapEditorViewModel) {
+    val pe = state.plannedEdit
+    BrandCard {
+        SectionHeader("Planned route")
+        if (pe == null) {
+            Text(
+                "${state.plannedRoute.size} waypoints. Tap “Edit route”, then tap a pin to select and tap the map to move it; tap empty map to add a pin at the end.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            SecondaryButton(
+                "Edit route on map",
+                onClick = viewModel::startPlannedEdit,
+                enabled = state.editable && !state.busy,
+                modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+            )
+        } else {
+            val selText = pe.selectedIndex?.let { "Waypoint ${it + 1} selected — tap the map to move it." }
+                ?: "Tap a pin to select it, or tap the map to add a waypoint."
+            Text(
+                "Editing ${pe.waypoints.size} waypoint(s). $selText",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Row(Modifier.fillMaxWidth().padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                SecondaryButton(
+                    "Delete pin",
+                    onClick = viewModel::deleteSelectedWaypoint,
+                    enabled = pe.selectedIndex != null && !state.busy,
+                    modifier = Modifier.weight(1f),
+                )
+                SecondaryButton(
+                    "Cancel",
+                    onClick = viewModel::cancelPlannedEdit,
+                    enabled = !state.busy,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+            GradientButton(
+                "Save route",
+                onClick = viewModel::savePlanned,
+                enabled = pe.dirty && !state.busy,
+                loading = state.busy,
+                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+// ── Trim recorded track by time range ────────────────────────────────────────
+
+@Composable
+private fun TrimSection(state: MapEditorUiState, viewModel: MapEditorViewModel) {
+    val context = LocalContext.current
+    var after by remember { mutableStateOf<Long?>(null) }
+    var before by remember { mutableStateOf<Long?>(null) }
+    val enabled = state.editable && !state.busy && state.selectedRiderId != null
+    BrandCard {
+        SectionHeader("Trim recorded track")
+        Text(
+            "Remove ${state.selectedRiderName}'s fixes in a time window. Set a start to trim the tail, an end to trim the head, or both to cut the middle. This can't be undone.",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        DateTimeField("After (start)", after, enabled, onClear = { after = null }) {
+            pickDateTime(context, after) { after = it }
+        }
+        DateTimeField("Before (end)", before, enabled, onClear = { before = null }) {
+            pickDateTime(context, before) { before = it }
+        }
+        GradientButton(
+            "Trim points",
+            onClick = { viewModel.trimTrackPoints(after, before) },
+            enabled = enabled && (after != null || before != null),
+            loading = state.busy,
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+        )
+    }
+}
+
+/** A read-only value + Set/Clear buttons that drive an epoch-millis picker. */
+@Composable
+private fun DateTimeField(
+    label: String,
+    millis: Long?,
+    enabled: Boolean,
+    onClear: () -> Unit,
+    onPick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().padding(top = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                millis?.let { fmtMillis(it) } ?: "Not set",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (millis != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = onPick, enabled = enabled) { Text("Set") }
+        if (millis != null) {
+            TextButton(onClick = onClear, enabled = enabled) { Text("Clear") }
+        }
     }
 }
 
@@ -343,17 +468,51 @@ private fun NumField(label: String, value: String, enabled: Boolean, onChange: (
 @Composable
 private fun BreaksSection(state: MapEditorUiState, viewModel: MapEditorViewModel) {
     val breaks = state.session?.breaks.orEmpty()
+    val enabled = state.editable && !state.busy
     BrandCard {
         SectionHeader("Breaks")
         if (breaks.isEmpty()) {
             Text("No breaks recorded.", style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            return@BrandCard
+        } else {
+            breaks.forEachIndexed { i, b ->
+                if (i > 0) HorizontalDivider(Modifier.padding(vertical = 4.dp))
+                BreakRow(b, enabled = enabled) { viewModel.deleteBreak(b.id) }
+            }
         }
-        breaks.forEachIndexed { i, b ->
-            if (i > 0) HorizontalDivider(Modifier.padding(vertical = 4.dp))
-            BreakRow(b, enabled = state.editable && !state.busy) { viewModel.deleteBreak(b.id) }
+        HorizontalDivider(Modifier.padding(vertical = 8.dp))
+        AddBreakForm(enabled = enabled) { start, end, reason -> viewModel.addBreak(start, end, reason) }
+    }
+}
+
+@Composable
+private fun AddBreakForm(enabled: Boolean, onAdd: (Long, Long?, String?) -> Unit) {
+    val context = LocalContext.current
+    var start by remember { mutableStateOf<Long?>(null) }
+    var end by remember { mutableStateOf<Long?>(null) }
+    var reason by remember { mutableStateOf("") }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Add a break", style = MaterialTheme.typography.labelLarge)
+        DateTimeField("Start", start, enabled, onClear = { start = null }) {
+            pickDateTime(context, start) { start = it }
         }
+        DateTimeField("End (optional — leave unset for an open break)", end, enabled, onClear = { end = null }) {
+            pickDateTime(context, end) { end = it }
+        }
+        OutlinedTextField(
+            value = reason,
+            onValueChange = { reason = it },
+            enabled = enabled,
+            label = { Text("Reason (optional)") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        )
+        GradientButton(
+            "Add break",
+            onClick = { start?.let { onAdd(it, end, reason.ifBlank { null }) } },
+            enabled = enabled && start != null,
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        )
     }
 }
 
@@ -406,4 +565,29 @@ private fun fmt(iso: String?): String {
     return runCatching { OffsetDateTime.parse(iso).format(DISPLAY_FMT) }.getOrDefault(iso)
 }
 
+private fun fmtMillis(millis: Long): String =
+    Instant.ofEpochMilli(millis).atZone(ZoneId.systemDefault()).format(DISPLAY_FMT)
+
 private fun fmtNum(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString() else "%.1f".format(v)
+
+/** Chain the platform date + time dialogs, yielding the chosen local instant as epoch millis. */
+private fun pickDateTime(context: Context, initialMillis: Long?, onPicked: (Long) -> Unit) {
+    val seed = Calendar.getInstance().apply { initialMillis?.let { timeInMillis = it } }
+    DatePickerDialog(
+        context,
+        { _, year, month, day ->
+            TimePickerDialog(
+                context,
+                { _, hour, minute ->
+                    val c = Calendar.getInstance().apply {
+                        set(year, month, day, hour, minute, 0)
+                        set(Calendar.MILLISECOND, 0)
+                    }
+                    onPicked(c.timeInMillis)
+                },
+                seed.get(Calendar.HOUR_OF_DAY), seed.get(Calendar.MINUTE), true,
+            ).show()
+        },
+        seed.get(Calendar.YEAR), seed.get(Calendar.MONTH), seed.get(Calendar.DAY_OF_MONTH),
+    ).show()
+}
