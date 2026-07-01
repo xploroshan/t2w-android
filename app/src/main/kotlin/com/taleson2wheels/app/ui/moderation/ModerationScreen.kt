@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,6 +45,7 @@ import com.taleson2wheels.app.data.remote.dto.RidePost
 import com.taleson2wheels.app.ui.AppViewModelFactory
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.OnBottomReached
 import com.taleson2wheels.app.ui.components.BrandBackground
 import com.taleson2wheels.app.ui.components.BrandCard
 import com.taleson2wheels.app.ui.components.GradientButton
@@ -190,12 +192,18 @@ private fun <T> ModerationQueueList(
         state.isLoading && state.items.isEmpty() -> LoadingView()
         state.error != null && state.items.isEmpty() -> ErrorView(state.error, onRefresh)
         state.items.isEmpty() -> ErrorView(emptyMessage, onRefresh)
-        else -> PullToRefreshBox(
+        else -> {
+            val listState = rememberLazyListState()
+            // Fetch the next page from the actual scroll position, not the footer's
+            // composition, so a tall viewport doesn't auto-chain pages.
+            listState.OnBottomReached { onLoadMore() }
+            PullToRefreshBox(
             isRefreshing = state.isLoading,
             onRefresh = onRefresh,
             modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -215,12 +223,12 @@ private fun <T> ModerationQueueList(
                                     .padding(16.dp),
                             )
                         } else {
-                            LaunchedEffect(state.nextCursor) { onLoadMore() }
                             LoadingView(Modifier.fillMaxWidth().padding(16.dp))
                         }
                     }
                 }
             }
+        }
         }
     }
 }

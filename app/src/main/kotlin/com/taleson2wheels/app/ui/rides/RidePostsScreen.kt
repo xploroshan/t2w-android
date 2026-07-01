@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -57,6 +58,7 @@ import com.taleson2wheels.app.ui.auth.AuthPrimaryButton
 import com.taleson2wheels.app.ui.common.Avatar
 import com.taleson2wheels.app.ui.common.ErrorView
 import com.taleson2wheels.app.ui.common.LoadingView
+import com.taleson2wheels.app.ui.common.OnBottomReached
 import com.taleson2wheels.app.ui.common.readPickedImage
 import kotlinx.coroutines.launch
 
@@ -112,7 +114,13 @@ fun RidePostsScreen(
                 ErrorView(state.error, { viewModel.load(rideId) }, Modifier.padding(innerPadding))
             state.posts.isEmpty() ->
                 ErrorView("No tales yet. Be the first to share one.", { viewModel.load(rideId) }, Modifier.padding(innerPadding))
-            else -> LazyColumn(
+            else -> {
+                val listState = rememberLazyListState()
+                // Fetch the next page from the actual scroll position, not the footer's
+                // composition, so a tall viewport doesn't auto-chain pages.
+                listState.OnBottomReached { viewModel.loadMore(rideId) }
+                LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -132,11 +140,11 @@ fun RidePostsScreen(
                                     .padding(16.dp),
                             )
                         } else {
-                            LaunchedEffect(state.nextCursor) { viewModel.loadMore(rideId) }
                             LoadingView(Modifier.fillMaxWidth().padding(16.dp))
                         }
                     }
                 }
+            }
             }
         }
     }

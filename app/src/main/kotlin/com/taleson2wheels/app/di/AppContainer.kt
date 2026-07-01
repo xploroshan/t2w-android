@@ -102,8 +102,14 @@ class AppContainer(context: Context) {
         .addInterceptor(logging)
         .build()
 
+    // Retrofit requires the base URL to end in '/'. The build/secrets value is only
+    // asked (by comment) to include it, so normalize here — a custom override
+    // without the slash would otherwise throw IllegalArgumentException from
+    // baseUrl() and crash the app on launch (AppContainer is built eagerly).
+    private val baseUrl: String = BuildConfig.API_BASE_URL.let { if (it.endsWith("/")) it else "$it/" }
+
     private val refreshRetrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+        .baseUrl(baseUrl)
         .client(plainClient)
         .addConverterFactory(converterFactory)
         .build()
@@ -133,7 +139,7 @@ class AppContainer(context: Context) {
         .build()
 
     private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.API_BASE_URL)
+        .baseUrl(baseUrl)
         .client(authedClient)
         .addConverterFactory(converterFactory)
         .build()
