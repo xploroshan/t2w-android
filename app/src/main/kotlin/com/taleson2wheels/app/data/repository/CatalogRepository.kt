@@ -4,6 +4,7 @@ import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.api.ContentApi
 import com.taleson2wheels.app.data.remote.dto.AchievementsResponse
 import com.taleson2wheels.app.data.remote.dto.BadgeDto
+import com.taleson2wheels.app.data.remote.dto.ContactRequest
 import com.taleson2wheels.app.data.remote.dto.CrewMemberDto
 import com.taleson2wheels.app.data.remote.dto.GuidelineDto
 import com.taleson2wheels.app.data.remote.dto.MarkReadRequest
@@ -38,4 +39,8 @@ class CatalogRepository(
     /** Mark notifications read; pass null [ids] to mark all. Returns the count updated. */
     suspend fun markNotificationsRead(ids: List<String>? = null): ApiResult<Int> =
         safeApiCall(json) { contentApi.markNotificationsRead(MarkReadRequest(ids)).updated }
+
+    /** Submit the public contact form. Returns whether the server accepted it. */
+    suspend fun submitContact(name: String, email: String, subject: String, message: String): ApiResult<Boolean> =
+        safeApiCall(json) { contentApi.contact(ContactRequest(name, email, subject, message)).success }
 }

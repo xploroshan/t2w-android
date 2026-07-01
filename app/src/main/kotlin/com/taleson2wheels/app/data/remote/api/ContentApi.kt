@@ -2,6 +2,8 @@ package com.taleson2wheels.app.data.remote.api
 
 import com.taleson2wheels.app.data.remote.dto.AchievementsResponse
 import com.taleson2wheels.app.data.remote.dto.BadgesResponse
+import com.taleson2wheels.app.data.remote.dto.ContactRequest
+import com.taleson2wheels.app.data.remote.dto.ContactResponse
 import com.taleson2wheels.app.data.remote.dto.CrewResponse
 import com.taleson2wheels.app.data.remote.dto.GuidelinesResponse
 import com.taleson2wheels.app.data.remote.dto.HealthDto
@@ -11,6 +13,7 @@ import com.taleson2wheels.app.data.remote.dto.NotificationsResponse
 import com.taleson2wheels.app.data.remote.dto.StatsDto
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 import retrofit2.http.PUT
 
 /** Read-only catalog + the health probe. All paths are implemented on `main`. */
@@ -41,4 +44,8 @@ interface ContentApi {
     /** Mark notifications read. Empty/null `ids` marks all of the caller's rows. */
     @PUT("api/v1/notifications")
     suspend fun markNotificationsRead(@Body body: MarkReadRequest): MarkReadResponse
+
+    /** Public contact form — rate-limited per IP. */
+    @POST("api/v1/contact")
+    suspend fun contact(@Body body: ContactRequest): ContactResponse
 }

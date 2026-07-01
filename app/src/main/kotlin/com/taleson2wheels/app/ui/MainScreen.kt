@@ -65,6 +65,8 @@ object Routes {
     const val NOTIFICATIONS = "notifications"
     const val EDIT_PROFILE = "edit-profile"
     const val CHANGE_PASSWORD = "change-password"
+    const val ABOUT = "about"
+    const val CONTACT = "contact"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
@@ -253,6 +255,8 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onOpenGarage = { navController.navigate(Routes.GARAGE) },
                     onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
+                    onOpenAbout = { navController.navigate(Routes.ABOUT) },
+                    onOpenContact = { navController.navigate(Routes.CONTACT) },
                 )
             }
             composable(Routes.EDIT_PROFILE) {
@@ -266,6 +270,20 @@ fun MainScreen(factory: AppViewModelFactory) {
             }
             composable(Routes.CREW) {
                 CrewScreen(factory = factory, onBack = { navController.popBackStack() })
+            }
+            composable(Routes.ABOUT) {
+                com.taleson2wheels.app.ui.content.AboutScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenCrew = { navController.navigate(Routes.CREW) },
+                    onOpenGuidelines = { navController.navigate(Routes.GUIDELINES) },
+                    onOpenContact = { navController.navigate(Routes.CONTACT) },
+                )
+            }
+            composable(Routes.CONTACT) {
+                com.taleson2wheels.app.ui.contact.ContactScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
             }
             composable(Routes.CHANGE_PASSWORD) {
                 com.taleson2wheels.app.ui.auth.ChangePasswordScreen(
