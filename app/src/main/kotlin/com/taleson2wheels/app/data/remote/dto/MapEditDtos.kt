@@ -68,6 +68,44 @@ data class MapRevertRequest(val userId: String)
 @Serializable
 data class MapDeletedResponse(val deleted: Int = 0)
 
+// --- Track-point trim (bulk delete by time range) ---
+
+/**
+ * Body for DELETE .../track-points. The app uses the range form:
+ * `{ userId, after?, before? }` (ISO-8601) — deletes the selected rider's fixes
+ * with `after < recordedAt < before`. Setting only `after` trims the tail; only
+ * `before` trims the head. (`pointIds` is the alternate id form, unused here — the
+ * decimated viewPath carries no point ids.)
+ */
+@Serializable
+data class MapDeleteTrackPointsRequest(
+    val userId: String? = null,
+    val after: String? = null,
+    val before: String? = null,
+    val pointIds: List<String>? = null,
+)
+
+// --- Planned-route replace (PUT) ---
+
+/** A single planned-route waypoint. */
+@Serializable
+data class MapWaypoint(val lat: Double, val lng: Double)
+
+/** Body for PUT .../planned-route — replaces the whole overlay (server cap 50k). */
+@Serializable
+data class MapPlannedRouteRequest(val waypoints: List<MapWaypoint>)
+
+/** Echoed session after a planned-route replace. */
+@Serializable
+data class MapPlannedSession(
+    val id: String = "",
+    val plannedRoute: List<MapWaypoint> = emptyList(),
+    val plannedRouteEditedAt: String? = null,
+)
+
+@Serializable
+data class MapPlannedRouteResponse(val session: MapPlannedSession? = null)
+
 // --- Stats overrides ---
 // The request body is built as a JsonObject in the repository (so a cleared
 // field can send an explicit null, which the app's explicitNulls=false Json

@@ -13,9 +13,13 @@ import com.taleson2wheels.app.data.remote.dto.MapAuditEntry
 import com.taleson2wheels.app.data.remote.dto.MapAuditResponse
 import com.taleson2wheels.app.data.remote.dto.MapBreakResponse
 import com.taleson2wheels.app.data.remote.dto.MapDeleteResponse
+import com.taleson2wheels.app.data.remote.dto.MapDeleteTrackPointsRequest
 import com.taleson2wheels.app.data.remote.dto.MapDeletedResponse
 import com.taleson2wheels.app.data.remote.dto.MapGpxPlannedResponse
 import com.taleson2wheels.app.data.remote.dto.MapGpxTrackResponse
+import com.taleson2wheels.app.data.remote.dto.MapPlannedRouteRequest
+import com.taleson2wheels.app.data.remote.dto.MapPlannedRouteResponse
+import com.taleson2wheels.app.data.remote.dto.MapPlannedSession
 import com.taleson2wheels.app.data.remote.dto.MapRevertRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothResponse
@@ -37,6 +41,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okio.Buffer
+import java.time.Instant
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -88,7 +93,21 @@ class MapEditorViewModelTest {
     private class FakeMapEditApi : MapEditApi {
         var lastStatsBody: JsonObject? = null
         var deletedBreakId: String? = null
-        override suspend fun addBreak(id: String, body: MapAddBreakRequest) = MapBreakResponse(LiveBreak(id = "new"))
+        var lastAddBreak: MapAddBreakRequest? = null
+        var lastTrim: MapDeleteTrackPointsRequest? = null
+        var lastPlanned: MapPlannedRouteRequest? = null
+        override suspend fun addBreak(id: String, body: MapAddBreakRequest): MapBreakResponse {
+            lastAddBreak = body
+            return MapBreakResponse(LiveBreak(id = "new", startedAt = body.startedAt, endedAt = body.endedAt, reason = body.reason))
+        }
+        override suspend fun deleteTrackPoints(id: String, body: MapDeleteTrackPointsRequest): MapDeletedResponse {
+            lastTrim = body
+            return MapDeletedResponse(deleted = 7)
+        }
+        override suspend fun setPlannedRoute(id: String, body: MapPlannedRouteRequest): MapPlannedRouteResponse {
+            lastPlanned = body
+            return MapPlannedRouteResponse(MapPlannedSession(id = "s1", plannedRoute = body.waypoints))
+        }
         override suspend fun deleteBreak(id: String, breakId: String): MapDeleteResponse {
             deletedBreakId = breakId
             return MapDeleteResponse(success = true, id = breakId)
@@ -218,5 +237,147 @@ class MapEditorViewModelTest {
         m.deleteBreak("b1"); advanceUntilIdle()
 
         assertEquals("b1", edit.deletedBreakId)
+    }
+
+    // ── Add break ────────────────────────────────────────────────────────────
+
+    @Test
+    fun addBreak_sends_iso_times_and_a_trimmed_reason() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.addBreak(1_000_000L, 2_000_000L, "  Lunch  "); advanceUntilIdle()
+
+        val body = edit.lastAddBreak!!
+        assertEquals(Instant.ofEpochMilli(1_000_000L).toString(), body.startedAt)
+        assertEquals(Instant.ofEpochMilli(2_000_000L).toString(), body.endedAt)
+        assertEquals("Lunch", body.reason)
+    }
+
+    @Test
+    fun addBreak_allows_an_open_break_with_no_end_or_reason() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.addBreak(1_000_000L, null, "   "); advanceUntilIdle()
+
+        val body = edit.lastAddBreak!!
+        assertEquals(Instant.ofEpochMilli(1_000_000L).toString(), body.startedAt)
+        assertNull(body.endedAt)
+        assertNull(body.reason) // blank → omitted
+    }
+
+    @Test
+    fun addBreak_rejects_end_before_start_without_calling_the_api() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.addBreak(2_000_000L, 1_000_000L, null); advanceUntilIdle()
+
+        assertNull(edit.lastAddBreak)
+        assertNotNull(m.uiState.actionError)
+    }
+
+    // ── Trim by time range ─────────────────────────────────────────────────────
+
+    @Test
+    fun trim_sends_the_range_for_the_selected_rider() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle() // selects lead r1
+
+        m.trimTrackPoints(1_000_000L, 2_000_000L); advanceUntilIdle()
+
+        val body = edit.lastTrim!!
+        assertEquals("r1", body.userId)
+        assertEquals(Instant.ofEpochMilli(1_000_000L).toString(), body.after)
+        assertEquals(Instant.ofEpochMilli(2_000_000L).toString(), body.before)
+        assertTrue(m.uiState.message!!.contains("7")) // "Removed 7 track points."
+    }
+
+    @Test
+    fun trim_requires_at_least_one_bound() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.trimTrackPoints(null, null); advanceUntilIdle()
+
+        assertNull(edit.lastTrim)
+        assertNotNull(m.uiState.actionError)
+    }
+
+    @Test
+    fun trim_rejects_a_start_after_the_end() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.trimTrackPoints(2_000_000L, 1_000_000L); advanceUntilIdle()
+
+        assertNull(edit.lastTrim)
+        assertNotNull(m.uiState.actionError)
+    }
+
+    // ── Planned-route edit model ───────────────────────────────────────────────
+
+    @Test
+    fun plannedEdit_tap_adds_then_moves_the_selected_waypoint() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.startPlannedEdit()
+        assertEquals(2, m.uiState.plannedEdit!!.waypoints.size) // parsed from the planned route
+
+        // No selection → a map tap appends a new waypoint and selects it.
+        m.onPlannedMapTap(14.0, 78.0)
+        var e = m.uiState.plannedEdit!!
+        assertEquals(3, e.waypoints.size)
+        assertEquals(2, e.selectedIndex)
+        assertTrue(e.dirty)
+
+        // With a selection → a map tap MOVES it instead of appending.
+        m.onPlannedMapTap(15.0, 79.0)
+        e = m.uiState.plannedEdit!!
+        assertEquals(3, e.waypoints.size)
+        assertEquals(15.0, e.waypoints[2].lat, 0.0)
+        assertEquals(79.0, e.waypoints[2].lng, 0.0)
+    }
+
+    @Test
+    fun plannedEdit_tapping_the_selected_pin_deselects_it() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+        m.startPlannedEdit()
+
+        m.selectPlannedWaypoint(1)
+        assertEquals(1, m.uiState.plannedEdit!!.selectedIndex)
+        m.selectPlannedWaypoint(1) // tap the same pin again → deselect
+        assertNull(m.uiState.plannedEdit!!.selectedIndex)
+    }
+
+    @Test
+    fun plannedEdit_delete_removes_the_selected_waypoint() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+        m.startPlannedEdit()
+
+        m.selectPlannedWaypoint(0)
+        m.deleteSelectedWaypoint()
+
+        val e = m.uiState.plannedEdit!!
+        assertEquals(1, e.waypoints.size)
+        assertNull(e.selectedIndex)
+        assertTrue(e.dirty)
+    }
+
+    @Test
+    fun savePlanned_sends_the_waypoints_and_exits_edit_mode() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+        m.startPlannedEdit()
+        m.onPlannedMapTap(14.0, 78.0) // dirty (3 waypoints)
+
+        m.savePlanned(); advanceUntilIdle()
+
+        assertEquals(3, edit.lastPlanned!!.waypoints.size)
+        assertNull(m.uiState.plannedEdit) // exited edit mode on success
+    }
+
+    @Test
+    fun savePlanned_with_no_changes_does_not_call_the_api() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+        m.startPlannedEdit()
+
+        m.savePlanned(); advanceUntilIdle()
+
+        assertNull(edit.lastPlanned)
     }
 }

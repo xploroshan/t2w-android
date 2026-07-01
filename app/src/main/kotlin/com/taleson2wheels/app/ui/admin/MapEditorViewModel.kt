@@ -12,9 +12,11 @@ import com.taleson2wheels.app.data.remote.dto.LivePathPoint
 import com.taleson2wheels.app.data.remote.dto.LiveRiderPosition
 import com.taleson2wheels.app.data.remote.dto.LiveSession
 import com.taleson2wheels.app.data.remote.dto.MapAuditEntry
+import com.taleson2wheels.app.data.remote.dto.MapWaypoint
 import com.taleson2wheels.app.data.remote.dto.SmoothStats
 import com.taleson2wheels.app.data.repository.LiveRepository
 import com.taleson2wheels.app.data.repository.MapEditRepository
+import java.time.Instant
 import kotlinx.coroutines.launch
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
@@ -25,6 +27,18 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.intOrNull
+
+/**
+ * The in-progress planned-route edit: a working copy of the overlay's waypoints,
+ * which one (if any) is selected, and whether anything changed since [startPlannedEdit].
+ * Null on [MapEditorUiState] means "not editing" (the map is read-only).
+ */
+@Immutable
+data class PlannedEditState(
+    val waypoints: List<MapWaypoint> = emptyList(),
+    val selectedIndex: Int? = null,
+    val dirty: Boolean = false,
+)
 
 /** The six stat-override text fields, plus which ones the admin has touched. */
 @Immutable
@@ -57,9 +71,12 @@ data class MapEditorUiState(
     val message: String? = null,
     val smoothPreview: SmoothStats? = null,
     val smoothPreviewPoints: Int? = null,
+    // Non-null while the planned route is being edited on the map.
+    val plannedEdit: PlannedEditState? = null,
 ) {
     /** The editor only operates on a non-live session (paused/ended). */
     val editable: Boolean get() = session != null && session.status != "live"
+    val isEditingPlanned: Boolean get() = plannedEdit != null
     val selectedRiderName: String
         get() = riders.firstOrNull { it.userId == selectedRiderId }?.userName?.ifBlank { null }
             ?: selectedRiderId ?: "—"
@@ -245,12 +262,138 @@ class MapEditorViewModel(
         return over
     }
 
-    // ── Breaks (list comes from the session; add needs a datetime picker — v2) ──
+    // ── Breaks (list from the session; add via the screen's datetime pickers) ────
+
+    /** Add a manual break. [endMillis] null = an open-ended break. Times are epoch ms. */
+    fun addBreak(startMillis: Long, endMillis: Long?, reason: String?) {
+        if (endMillis != null && endMillis <= startMillis) {
+            uiState = uiState.copy(actionError = "Break end must be after its start")
+            return
+        }
+        val startedAt = isoOf(startMillis)
+        val endedAt = endMillis?.let { isoOf(it) }
+        val trimmedReason = reason?.trim()?.takeIf { it.isNotEmpty() }
+        runAction {
+            when (val r = mapEditRepository.addBreak(uiState.rideId, startedAt, endedAt, trimmedReason)) {
+                is ApiResult.Success -> { uiState = uiState.copy(message = "Break added."); null }
+                is ApiResult.Failure -> r.error.userMessage
+            }
+        }
+    }
 
     fun deleteBreak(breakId: String) = runAction {
         when (val r = mapEditRepository.deleteBreak(uiState.rideId, breakId)) {
             is ApiResult.Success -> { uiState = uiState.copy(message = "Break removed."); null }
             is ApiResult.Failure -> r.error.userMessage
+        }
+    }
+
+    // ── Trim recorded track by time range ───────────────────────────────────────
+
+    /**
+     * Remove the selected rider's fixes in a window: `after < recordedAt < before`.
+     * Only [afterMillis] → trim the tail; only [beforeMillis] → trim the head.
+     */
+    fun trimTrackPoints(afterMillis: Long?, beforeMillis: Long?) = withRider { rider ->
+        if (afterMillis == null && beforeMillis == null) {
+            uiState = uiState.copy(actionError = "Pick a start and/or end time to trim")
+            return@withRider
+        }
+        if (afterMillis != null && beforeMillis != null && afterMillis >= beforeMillis) {
+            uiState = uiState.copy(actionError = "End time must be after start time")
+            return@withRider
+        }
+        val after = afterMillis?.let { isoOf(it) }
+        val before = beforeMillis?.let { isoOf(it) }
+        runAction {
+            when (val r = mapEditRepository.trimTrackPoints(uiState.rideId, rider, after, before)) {
+                is ApiResult.Success -> {
+                    uiState = uiState.copy(
+                        message = if (r.data > 0) "Removed ${r.data} track points." else "No points in that range.",
+                    )
+                    null
+                }
+                is ApiResult.Failure -> r.error.userMessage
+            }
+        }
+    }
+
+    // ── Planned-route edit (tap the map: move the selected pin, or add one) ──────
+
+    fun startPlannedEdit() {
+        if (uiState.busy || uiState.isEditingPlanned) return
+        val wps = uiState.plannedRoute.map { MapWaypoint(it.lat, it.lng) }
+        if (wps.size > MAX_EDITABLE_WAYPOINTS) {
+            uiState = uiState.copy(
+                actionError = "This planned route has too many points to edit on mobile " +
+                    "(max $MAX_EDITABLE_WAYPOINTS) — replace it with a GPX import instead.",
+            )
+            return
+        }
+        uiState = uiState.copy(plannedEdit = PlannedEditState(waypoints = wps))
+    }
+
+    fun cancelPlannedEdit() {
+        if (uiState.busy) return
+        uiState = uiState.copy(plannedEdit = null)
+    }
+
+    fun selectPlannedWaypoint(index: Int?) {
+        val e = uiState.plannedEdit ?: return
+        val sel = when {
+            index == null || index !in e.waypoints.indices -> null
+            index == e.selectedIndex -> null // tapping the selected pin deselects it (so a map tap adds a new one)
+            else -> index
+        }
+        uiState = uiState.copy(plannedEdit = e.copy(selectedIndex = sel))
+    }
+
+    /** A map tap moves the selected waypoint here, or appends a new one if none is selected. */
+    fun onPlannedMapTap(lat: Double, lng: Double) {
+        if (uiState.busy) return
+        val e = uiState.plannedEdit ?: return
+        val sel = e.selectedIndex
+        val next = if (sel != null && sel in e.waypoints.indices) {
+            val moved = e.waypoints.toMutableList().also { it[sel] = MapWaypoint(lat, lng) }
+            e.copy(waypoints = moved, dirty = true)
+        } else {
+            if (e.waypoints.size >= MAX_EDITABLE_WAYPOINTS) {
+                uiState = uiState.copy(actionError = "Too many waypoints (max $MAX_EDITABLE_WAYPOINTS)")
+                return
+            }
+            e.copy(waypoints = e.waypoints + MapWaypoint(lat, lng), selectedIndex = e.waypoints.size, dirty = true)
+        }
+        uiState = uiState.copy(plannedEdit = next)
+    }
+
+    fun deleteSelectedWaypoint() {
+        if (uiState.busy) return
+        val e = uiState.plannedEdit ?: return
+        val sel = e.selectedIndex ?: return
+        if (sel !in e.waypoints.indices) return
+        val remaining = e.waypoints.toMutableList().also { it.removeAt(sel) }
+        uiState = uiState.copy(plannedEdit = e.copy(waypoints = remaining, selectedIndex = null, dirty = true))
+    }
+
+    fun savePlanned() {
+        val e = uiState.plannedEdit ?: return
+        if (!e.dirty) {
+            uiState = uiState.copy(message = "No route changes to save.")
+            return
+        }
+        val wps = e.waypoints
+        runAction {
+            when (val r = mapEditRepository.setPlannedRoute(uiState.rideId, wps)) {
+                is ApiResult.Success -> {
+                    uiState = uiState.copy(
+                        plannedRoute = wps.map { LivePathPoint(it.lat, it.lng) },
+                        plannedEdit = null,
+                        message = "Planned route saved (${wps.size} points).",
+                    )
+                    null
+                }
+                is ApiResult.Failure -> r.error.userMessage
+            }
         }
     }
 
@@ -341,6 +484,9 @@ class MapEditorViewModel(
         return runCatching { json.decodeFromString<List<LivePathPoint>>(raw) }.getOrDefault(emptyList())
     }
 
+    /** Epoch millis → ISO-8601 UTC (what the backend's date parsers accept). */
+    private fun isoOf(millis: Long): String = Instant.ofEpochMilli(millis).toString()
+
     private fun pointCount(el: JsonElement?): Int = when (el) {
         is JsonArray -> el.size
         is JsonPrimitive -> el.intOrNull ?: 0
@@ -374,5 +520,7 @@ class MapEditorViewModel(
     private companion object {
         // Matches the backend's MAX_GPX_BYTES so we reject early with a clear message.
         const val MAX_GPX_BYTES = 5 * 1024 * 1024
+        // Cap for tap-to-edit on a phone — a denser route should be replaced via GPX.
+        const val MAX_EDITABLE_WAYPOINTS = 100
     }
 }

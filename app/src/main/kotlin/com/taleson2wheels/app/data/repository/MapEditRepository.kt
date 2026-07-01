@@ -5,6 +5,10 @@ import com.taleson2wheels.app.data.remote.api.MapEditApi
 import com.taleson2wheels.app.data.remote.dto.LiveBreak
 import com.taleson2wheels.app.data.remote.dto.MapAddBreakRequest
 import com.taleson2wheels.app.data.remote.dto.MapAuditEntry
+import com.taleson2wheels.app.data.remote.dto.MapDeleteTrackPointsRequest
+import com.taleson2wheels.app.data.remote.dto.MapPlannedRouteRequest
+import com.taleson2wheels.app.data.remote.dto.MapPlannedSession
+import com.taleson2wheels.app.data.remote.dto.MapWaypoint
 import com.taleson2wheels.app.data.remote.dto.MapRevertRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothResponse
@@ -57,6 +61,29 @@ class MapEditRepository(
 
     suspend fun audit(rideId: String): ApiResult<List<MapAuditEntry>> =
         safeApiCall(json) { mapEditApi.audit(rideId).edits }
+
+    /**
+     * Bulk-delete the rider's fixes in a time window: `after < recordedAt < before`.
+     * Pass only [after] to trim the tail, only [before] to trim the head. Returns
+     * the number of points removed.
+     */
+    suspend fun trimTrackPoints(
+        rideId: String,
+        userId: String,
+        after: String?,
+        before: String?,
+    ): ApiResult<Int> = safeApiCall(json) {
+        mapEditApi.deleteTrackPoints(
+            rideId,
+            MapDeleteTrackPointsRequest(userId = userId, after = after, before = before),
+        ).deleted
+    }
+
+    /** Replace the planned-route overlay with [waypoints]. */
+    suspend fun setPlannedRoute(rideId: String, waypoints: List<MapWaypoint>): ApiResult<MapPlannedSession> =
+        safeApiCall(json) {
+            mapEditApi.setPlannedRoute(rideId, MapPlannedRouteRequest(waypoints)).session ?: MapPlannedSession()
+        }
 
     suspend fun importRecordedGpx(
         rideId: String,
