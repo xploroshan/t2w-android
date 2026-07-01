@@ -14,4 +14,6 @@
     <string name="rides_empty">No rides yet. Pull to refresh.</string>
     <string name="action_retry">Retry</string>
     <string name="action_logout">Sign out</string>
+    <!-- Accessibility: spoken by TalkBack for the full-screen loading spinner. -->
+    <string name="cd_loading">Loading</string>
 </resources>

@@ -170,7 +170,7 @@ private fun RidePostCard(post: RidePost) {
                     items(post.images, key = { it }) { url ->
                         ZoomableAsyncImage(
                             url = url,
-                            contentDescription = null,
+                            contentDescription = "Ride tale photo",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(160.dp).clip(RoundedCornerShape(12.dp)),
                         )
@@ -218,7 +218,7 @@ private fun Composer(state: RidePostsUiState, viewModel: RidePostsViewModel, rid
                     androidx.compose.foundation.layout.Box {
                         SubcomposeAsyncImage(
                             model = url,
-                            contentDescription = null,
+                            contentDescription = "Selected photo",
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.size(96.dp).clip(RoundedCornerShape(8.dp)),
                             loading = {},
