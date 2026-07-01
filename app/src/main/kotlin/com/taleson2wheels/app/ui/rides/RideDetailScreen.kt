@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Terrain
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -66,6 +67,7 @@ fun RideDetailScreen(
     onRegister: (rideId: String, rideTitle: String) -> Unit,
     onOpenPosts: (String) -> Unit,
     onOpenLive: (String) -> Unit,
+    onOpenRelive: (String) -> Unit,
     onOpenInsights: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: RideDetailViewModel = viewModel(factory = factory),
@@ -114,6 +116,7 @@ fun RideDetailScreen(
                     onRegister = { onRegister(state.ride.id, state.ride.title) },
                     onOpenPosts = { onOpenPosts(state.ride.id) },
                     onOpenLive = { onOpenLive(state.ride.id) },
+                    onOpenRelive = { onOpenRelive(state.ride.id) },
                     onOpenInsights = { onOpenInsights(state.ride.id) },
                     onAddToCalendar = { addRideToCalendar(context, state.ride) },
                 )
@@ -128,6 +131,7 @@ internal fun RideDetailBody(
     onRegister: () -> Unit,
     onOpenPosts: () -> Unit,
     onOpenLive: () -> Unit,
+    onOpenRelive: () -> Unit,
     onOpenInsights: () -> Unit,
     onAddToCalendar: () -> Unit,
 ) {
@@ -191,6 +195,12 @@ internal fun RideDetailBody(
         }
         SecondaryButton(text = "Ride tales", onClick = onOpenPosts, modifier = Modifier.fillMaxWidth())
         if (!isUpcoming) {
+            SecondaryButton(
+                text = "Relive in 3D",
+                onClick = onOpenRelive,
+                leadingIcon = Icons.Filled.Terrain,
+                modifier = Modifier.fillMaxWidth(),
+            )
             SecondaryButton(text = "Ride insights", onClick = onOpenInsights, modifier = Modifier.fillMaxWidth())
         }
         if (isUpcoming && ride.startDate != null) {

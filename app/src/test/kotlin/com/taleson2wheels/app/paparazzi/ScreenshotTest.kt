@@ -156,7 +156,7 @@ class ScreenshotTest {
                 description = "Three days through the Western Ghats — two mountain passes, one monsoon, and a lot of chai stops.",
                 fee = 2500.0, maxRiders = 25, registeredRiders = 18,
             ),
-            onRegister = {}, onOpenPosts = {}, onOpenLive = {}, onOpenInsights = {}, onAddToCalendar = {},
+            onRegister = {}, onOpenPosts = {}, onOpenLive = {}, onOpenRelive = {}, onOpenInsights = {}, onAddToCalendar = {},
         )
     }
 

@@ -54,6 +54,7 @@ object Routes {
     const val RIDE_REGISTER = "rides/{rideId}/register?title={title}"
     const val RIDE_POSTS = "rides/{rideId}/posts"
     const val RIDE_LIVE = "rides/{rideId}/live"
+    const val RIDE_RELIVE = "rides/{rideId}/relive"
     const val RIDE_INSIGHTS = "rides/{rideId}/insights"
     const val RIDER_PROFILE = "riders/{riderId}"
     const val BLOG_DETAIL = "stories/{blogId}"
@@ -88,6 +89,7 @@ object Routes {
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
     fun rideLive(id: String) = "rides/$id/live"
+    fun rideRelive(id: String) = "rides/$id/relive"
     fun rideInsights(id: String) = "rides/$id/insights"
     fun riderProfile(id: String) = "riders/$id"
     fun blogDetail(id: String) = "stories/$id"
@@ -168,6 +170,7 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onRegister = { id, title -> navController.navigate(Routes.rideRegister(id, title)) },
                     onOpenPosts = { id -> navController.navigate(Routes.ridePosts(id)) },
                     onOpenLive = { id -> navController.navigate(Routes.rideLive(id)) },
+                    onOpenRelive = { id -> navController.navigate(Routes.rideRelive(id)) },
                     onOpenInsights = { id -> navController.navigate(Routes.rideInsights(id)) },
                 )
             }
@@ -186,6 +189,16 @@ fun MainScreen(factory: AppViewModelFactory) {
                 arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
             ) { entry ->
                 LiveRideScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.RIDE_RELIVE,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                com.taleson2wheels.app.ui.relive.ReliveScreen(
                     rideId = entry.arguments?.getString("rideId").orEmpty(),
                     factory = factory,
                     onBack = { navController.popBackStack() },

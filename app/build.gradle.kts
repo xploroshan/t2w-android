@@ -235,6 +235,12 @@ dependencies {
     implementation(libs.maps.compose)
     implementation(libs.play.services.maps)
 
+    // Mapbox Maps SDK — the Relive 3D-terrain flyover (satellite + DEM terrain +
+    // animated track playback). Resolves from Mapbox's private Maven repo, which
+    // needs the secret MAPBOX_DOWNLOADS_TOKEN configured (settings.gradle.kts +
+    // docs/SETUP_SECRETS.md). Runtime tiles use the public MAPBOX_ACCESS_TOKEN.
+    implementation(libs.mapbox.maps)
+
     // Offline cache (Room + KSP processor)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
