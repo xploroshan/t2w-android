@@ -148,13 +148,13 @@ private fun ProfileBody(
             items(user.earnedBadges, key = { it.id }) { BadgeRow(it) }
         }
 
-        // Role-gated moderation entry. The exact per-toggle permission
-        // (canManageRegistrations) is enforced server-side; core members /
-        // superadmins see the entry and the screen surfaces a 403 if their
-        // toggle is off.
+        // Role-gated moderation entry. The exact per-toggle permissions
+        // (canManageRegistrations for registrations, canApproveContent for blogs
+        // and ride tales) are enforced server-side; core members / superadmins
+        // see the entry and each tab surfaces a 403 if its toggle is off.
         if (user.role == "core_member" || user.role == "superadmin") {
             item { SectionHeader("Moderation") }
-            item { LinkRow("Review registrations", onOpenModeration) }
+            item { LinkRow("Review queue", onOpenModeration) }
         }
 
         item { SectionHeader("More") }

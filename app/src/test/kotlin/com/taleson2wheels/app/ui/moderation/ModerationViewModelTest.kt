@@ -1,10 +1,14 @@
 package com.taleson2wheels.app.ui.moderation
 
 import com.taleson2wheels.app.data.remote.api.AdminApi
+import com.taleson2wheels.app.data.remote.dto.BlogCard
+import com.taleson2wheels.app.data.remote.dto.BlogResponse
 import com.taleson2wheels.app.data.remote.dto.ModerationAction
 import com.taleson2wheels.app.data.remote.dto.Page
 import com.taleson2wheels.app.data.remote.dto.RegistrationModeration
 import com.taleson2wheels.app.data.remote.dto.RegistrationModerationResponse
+import com.taleson2wheels.app.data.remote.dto.RidePost
+import com.taleson2wheels.app.data.remote.dto.RidePostResponse
 import com.taleson2wheels.app.data.repository.AdminRepository
 import com.taleson2wheels.app.testutil.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -40,6 +44,19 @@ class ModerationViewModelTest {
             val newStatus = if (body.action == "approve") "confirmed" else "rejected"
             return RegistrationModerationResponse(reg(id).copy(approvalStatus = newStatus))
         }
+
+        // Content queues are unused in this suite (covered by ContentModerationViewModelTest).
+        override suspend fun moderationBlogs(status: String?, cursor: String?, limit: Int): Page<BlogCard> =
+            Page(items = emptyList(), nextCursor = null)
+
+        override suspend fun moderateBlog(id: String, body: ModerationAction): BlogResponse =
+            throw UnsupportedOperationException("not used")
+
+        override suspend fun moderationRidePosts(status: String?, rideId: String?, cursor: String?, limit: Int): Page<RidePost> =
+            Page(items = emptyList(), nextCursor = null)
+
+        override suspend fun moderateRidePost(id: String, body: ModerationAction): RidePostResponse =
+            throw UnsupportedOperationException("not used")
     }
 
     private val fake = FakeAdminApi()
