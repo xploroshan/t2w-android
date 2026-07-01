@@ -85,6 +85,14 @@ class AdminUsersViewModelTest {
         override suspend fun moderationRidePosts(status: String?, rideId: String?, cursor: String?, limit: Int) =
             Page<RidePost>(items = emptyList(), nextCursor = null)
         override suspend fun moderateRidePost(id: String, body: ModerationAction): RidePostResponse = throw UnsupportedOperationException()
+
+        // Ride CRUD + participation unused here.
+        override suspend fun createRide(body: com.taleson2wheels.app.data.remote.dto.RideInput) = throw UnsupportedOperationException()
+        override suspend fun updateRide(id: String, body: com.taleson2wheels.app.data.remote.dto.RideInput) = throw UnsupportedOperationException()
+        override suspend fun deleteRide(id: String) = throw UnsupportedOperationException()
+        override suspend fun participation(id: String) = throw UnsupportedOperationException()
+        override suspend fun setParticipation(id: String, body: com.taleson2wheels.app.data.remote.dto.SetParticipationBody) = throw UnsupportedOperationException()
+        override suspend fun setParticipationDroppedOut(id: String, body: com.taleson2wheels.app.data.remote.dto.DropOutBody) = throw UnsupportedOperationException()
     }
 
     private val fake = FakeAdminApi()

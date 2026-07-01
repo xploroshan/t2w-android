@@ -75,6 +75,18 @@ class ContentModerationViewModelTest {
             throw UnsupportedOperationException("not used")
         override suspend fun setUserRole(id: String, body: com.taleson2wheels.app.data.remote.dto.RoleBody) =
             throw UnsupportedOperationException("not used")
+
+        // Ride CRUD + participation unused in this suite.
+        override suspend fun createRide(body: com.taleson2wheels.app.data.remote.dto.RideInput) =
+            throw UnsupportedOperationException("not used")
+        override suspend fun updateRide(id: String, body: com.taleson2wheels.app.data.remote.dto.RideInput) =
+            throw UnsupportedOperationException("not used")
+        override suspend fun deleteRide(id: String) = throw UnsupportedOperationException("not used")
+        override suspend fun participation(id: String) = throw UnsupportedOperationException("not used")
+        override suspend fun setParticipation(id: String, body: com.taleson2wheels.app.data.remote.dto.SetParticipationBody) =
+            throw UnsupportedOperationException("not used")
+        override suspend fun setParticipationDroppedOut(id: String, body: com.taleson2wheels.app.data.remote.dto.DropOutBody) =
+            throw UnsupportedOperationException("not used")
     }
 
     private val fake = FakeAdminApi()

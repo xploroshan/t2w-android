@@ -70,6 +70,13 @@ object Routes {
     const val MODERATION = "moderation"
     const val ADMIN_HUB = "admin"
     const val ADMIN_USERS = "admin/users"
+    const val ADMIN_RIDES = "admin/rides"
+    const val ADMIN_RIDE_NEW = "admin/rides/new"
+    const val ADMIN_RIDE_EDIT = "admin/rides/{rideId}/edit"
+    const val ADMIN_PARTICIPATION = "admin/rides/{rideId}/participation?title={title}"
+    fun adminRideEdit(id: String) = "admin/rides/$id/edit"
+    fun adminParticipation(id: String, title: String) =
+        "admin/rides/$id/participation?title=${Uri.encode(title)}"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
@@ -267,11 +274,57 @@ fun MainScreen(factory: AppViewModelFactory) {
                 com.taleson2wheels.app.ui.admin.AdminHubScreen(
                     onBack = { navController.popBackStack() },
                     onOpenUsers = { navController.navigate(Routes.ADMIN_USERS) },
+                    onOpenRides = { navController.navigate(Routes.ADMIN_RIDES) },
                     onOpenModeration = { navController.navigate(Routes.MODERATION) },
                 )
             }
             composable(Routes.ADMIN_USERS) {
                 com.taleson2wheels.app.ui.admin.AdminUsersScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(Routes.ADMIN_RIDES) {
+                com.taleson2wheels.app.ui.admin.AdminRidesScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onCreateRide = { navController.navigate(Routes.ADMIN_RIDE_NEW) },
+                    onEditRide = { id -> navController.navigate(Routes.adminRideEdit(id)) },
+                    onOpenParticipation = { id, title -> navController.navigate(Routes.adminParticipation(id, title)) },
+                )
+            }
+            composable(Routes.ADMIN_RIDE_NEW) {
+                com.taleson2wheels.app.ui.admin.AdminRideEditorScreen(
+                    rideId = null,
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.ADMIN_RIDE_EDIT,
+                arguments = listOf(navArgument("rideId") { type = NavType.StringType }),
+            ) { entry ->
+                com.taleson2wheels.app.ui.admin.AdminRideEditorScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
+                    onSaved = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = Routes.ADMIN_PARTICIPATION,
+                arguments = listOf(
+                    navArgument("rideId") { type = NavType.StringType },
+                    navArgument("title") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                ),
+            ) { entry ->
+                com.taleson2wheels.app.ui.admin.AdminParticipationScreen(
+                    rideId = entry.arguments?.getString("rideId").orEmpty(),
+                    rideTitle = entry.arguments?.getString("title").orEmpty(),
                     factory = factory,
                     onBack = { navController.popBackStack() },
                 )

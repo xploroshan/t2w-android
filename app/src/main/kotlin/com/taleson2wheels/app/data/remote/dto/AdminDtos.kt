@@ -72,3 +72,76 @@ data class RoleBody(val role: String)
 /** `{ "id": ... }` returned by the reject endpoint. */
 @Serializable
 data class IdResponse(val id: String)
+
+// ── Admin ride CRUD (POST/PATCH/DELETE /api/v1/admin/rides*) ──────────────────
+
+/**
+ * Ride create/update payload (`RideInput` in `docs/openapi-v1.yaml`). Every field
+ * is nullable so the app's Json (`explicitNulls = false`) omits the ones the
+ * mobile editor doesn't manage — a partial PATCH then leaves the untouched
+ * columns (route, highlights, crew, regFormSettings, reg windows, poster) intact
+ * instead of wiping them. On create the backend applies its own defaults for the
+ * omitted fields.
+ *
+ * The mobile editor deliberately covers only the round-trippable core fields;
+ * richer editing (route/highlights/registration form/crew) stays on the web admin.
+ */
+@Serializable
+data class RideInput(
+    val title: String? = null,
+    val type: String? = null,
+    val status: String? = null,
+    val startDate: String? = null,
+    val endDate: String? = null,
+    val startLocation: String? = null,
+    val endLocation: String? = null,
+    val distanceKm: Double? = null,
+    val maxRiders: Int? = null,
+    val difficulty: String? = null,
+    val description: String? = null,
+    val fee: Double? = null,
+)
+
+/** `{ "success": ..., "id": ... }` returned by the delete-ride endpoint. */
+@Serializable
+data class RideDeleteResponse(val id: String, val success: Boolean = false)
+
+// ── Admin participation matrix (GET/PUT/PATCH .../rides/{id}/participation) ────
+
+/** One participation row for a ride (`ParticipationRow`): rider + points + drop-out. */
+@Serializable
+data class ParticipationRow(
+    val riderProfileId: String,
+    val riderName: String,
+    val avatarUrl: String? = null,
+    val points: Double,
+    val droppedOut: Boolean,
+)
+
+/** `GET .../participation` → `{ "items": [...] }`. */
+@Serializable
+data class ParticipationListResponse(val items: List<ParticipationRow> = emptyList())
+
+/**
+ * Body for `PUT .../participation`. An explicit non-positive [points] removes the
+ * rider's participation; an omitted [points] (null → dropped by `explicitNulls`)
+ * auto-awards by ride type.
+ */
+@Serializable
+data class SetParticipationBody(val riderProfileId: String, val points: Double? = null)
+
+/** `PUT .../participation` → `{ "action": "set" | "removed", "riderProfileId", "points"? }`. */
+@Serializable
+data class SetParticipationResult(
+    val action: String? = null,
+    val riderProfileId: String,
+    val points: Double? = null,
+)
+
+/** Body for `PATCH .../participation` (super-admin only). */
+@Serializable
+data class DropOutBody(val riderProfileId: String, val droppedOut: Boolean)
+
+/** `PATCH .../participation` → `{ "riderProfileId", "droppedOut" }`. */
+@Serializable
+data class DropOutResult(val riderProfileId: String, val droppedOut: Boolean)

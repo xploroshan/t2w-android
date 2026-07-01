@@ -5,11 +5,18 @@ import com.taleson2wheels.app.data.remote.api.AdminApi
 import com.taleson2wheels.app.data.remote.dto.AdminUser
 import com.taleson2wheels.app.data.remote.dto.BlockBody
 import com.taleson2wheels.app.data.remote.dto.BlogCard
+import com.taleson2wheels.app.data.remote.dto.DropOutBody
+import com.taleson2wheels.app.data.remote.dto.DropOutResult
 import com.taleson2wheels.app.data.remote.dto.ModerationAction
 import com.taleson2wheels.app.data.remote.dto.Page
+import com.taleson2wheels.app.data.remote.dto.ParticipationRow
 import com.taleson2wheels.app.data.remote.dto.RegistrationModeration
+import com.taleson2wheels.app.data.remote.dto.RideDetail
+import com.taleson2wheels.app.data.remote.dto.RideInput
 import com.taleson2wheels.app.data.remote.dto.RidePost
 import com.taleson2wheels.app.data.remote.dto.RoleBody
+import com.taleson2wheels.app.data.remote.dto.SetParticipationBody
+import com.taleson2wheels.app.data.remote.dto.SetParticipationResult
 import com.taleson2wheels.app.data.remote.safeApiCall
 import kotlinx.serialization.json.Json
 
@@ -80,4 +87,35 @@ class AdminRepository(
 
     suspend fun setUserRole(id: String, role: String): ApiResult<AdminUser> =
         safeApiCall(json) { adminApi.setUserRole(id, RoleBody(role)).user }
+
+    // ── Ride CRUD ──────────────────────────────────────────────────────────────
+
+    suspend fun createRide(input: RideInput): ApiResult<RideDetail> =
+        safeApiCall(json) { adminApi.createRide(input).ride }
+
+    suspend fun updateRide(id: String, input: RideInput): ApiResult<RideDetail> =
+        safeApiCall(json) { adminApi.updateRide(id, input).ride }
+
+    suspend fun deleteRide(id: String): ApiResult<String> =
+        safeApiCall(json) { adminApi.deleteRide(id).id }
+
+    // ── Per-ride participation ──────────────────────────────────────────────────
+
+    suspend fun participation(rideId: String): ApiResult<List<ParticipationRow>> =
+        safeApiCall(json) { adminApi.participation(rideId).items }
+
+    /** Set a rider's points; pass [points] `0.0` (or negative) to remove, `null` to auto-award. */
+    suspend fun setParticipationPoints(
+        rideId: String,
+        riderProfileId: String,
+        points: Double?,
+    ): ApiResult<SetParticipationResult> =
+        safeApiCall(json) { adminApi.setParticipation(rideId, SetParticipationBody(riderProfileId, points)) }
+
+    suspend fun setParticipationDroppedOut(
+        rideId: String,
+        riderProfileId: String,
+        droppedOut: Boolean,
+    ): ApiResult<DropOutResult> =
+        safeApiCall(json) { adminApi.setParticipationDroppedOut(rideId, DropOutBody(riderProfileId, droppedOut)) }
 }

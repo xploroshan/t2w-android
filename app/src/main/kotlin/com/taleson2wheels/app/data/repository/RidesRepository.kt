@@ -59,6 +59,19 @@ class RidesRepository(
         }
     }
 
+    /**
+     * Uncached ride list for the admin editor. Unlike [rides] it never reads or
+     * writes the shared `rides:first` snapshot, so the admin surface always shows
+     * live data (including completed / cancelled rides) and can't be corrupted by
+     * — or corrupt — the rider-facing Rides tab's cache.
+     */
+    suspend fun ridesFresh(
+        cursor: String? = null,
+        limit: Int = DEFAULT_LIMIT,
+        status: String? = null,
+    ): ApiResult<Page<RideCard>> =
+        safeApiCall(json) { ridesApi.list(cursor = cursor, limit = limit, status = status) }
+
     suspend fun ride(id: String): ApiResult<RideDetail> =
         cache.networkWithFallback(
             key = "ride:$id",
