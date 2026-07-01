@@ -49,6 +49,8 @@ fun ProfileScreen(
     onOpenGarage: () -> Unit,
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenContact: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(factory = factory),
 ) {
@@ -86,6 +88,8 @@ fun ProfileScreen(
                     onOpenGarage = onOpenGarage,
                     onEditProfile = onEditProfile,
                     onChangePassword = onChangePassword,
+                    onOpenAbout = onOpenAbout,
+                    onOpenContact = onOpenContact,
                 )
             }
         }
@@ -100,6 +104,8 @@ private fun ProfileBody(
     onOpenGarage: () -> Unit,
     onEditProfile: () -> Unit,
     onChangePassword: () -> Unit,
+    onOpenAbout: () -> Unit,
+    onOpenContact: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -143,6 +149,8 @@ private fun ProfileBody(
         item { LinkRow("Edit profile", onEditProfile) }
         item { LinkRow("Ride guidelines", onOpenGuidelines) }
         item { LinkRow("Crew", onOpenCrew) }
+        item { LinkRow("About & connect", onOpenAbout) }
+        item { LinkRow("Contact us", onOpenContact) }
         item { LinkRow("Change password", onChangePassword) }
     }
 }

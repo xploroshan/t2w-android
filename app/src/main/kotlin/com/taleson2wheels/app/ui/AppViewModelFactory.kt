@@ -11,6 +11,7 @@ import com.taleson2wheels.app.ui.auth.RegisterViewModel
 import com.taleson2wheels.app.ui.blogs.BlogComposerViewModel
 import com.taleson2wheels.app.ui.blogs.BlogDetailViewModel
 import com.taleson2wheels.app.ui.blogs.BlogsViewModel
+import com.taleson2wheels.app.ui.contact.ContactViewModel
 import com.taleson2wheels.app.ui.content.CrewViewModel
 import com.taleson2wheels.app.ui.content.GuidelinesViewModel
 import com.taleson2wheels.app.ui.garage.GarageViewModel
@@ -95,6 +96,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(CrewViewModel::class.java) ->
             CrewViewModel(container.catalogRepository) as T
+
+        modelClass.isAssignableFrom(ContactViewModel::class.java) ->
+            ContactViewModel(container.catalogRepository, container.authRepository) as T
 
         modelClass.isAssignableFrom(BlogsViewModel::class.java) ->
             BlogsViewModel(container.blogsRepository, container.authRepository) as T
