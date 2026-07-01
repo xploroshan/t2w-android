@@ -18,6 +18,7 @@ import com.taleson2wheels.app.ui.garage.GarageViewModel
 import com.taleson2wheels.app.ui.home.HomeViewModel
 import com.taleson2wheels.app.ui.live.LiveInsightsViewModel
 import com.taleson2wheels.app.ui.live.LiveRideViewModel
+import com.taleson2wheels.app.ui.admin.AdminUsersViewModel
 import com.taleson2wheels.app.ui.moderation.BlogModerationViewModel
 import com.taleson2wheels.app.ui.moderation.ModerationViewModel
 import com.taleson2wheels.app.ui.moderation.RidePostModerationViewModel
@@ -120,6 +121,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(RidePostModerationViewModel::class.java) ->
             RidePostModerationViewModel(container.adminRepository) as T
+
+        modelClass.isAssignableFrom(AdminUsersViewModel::class.java) ->
+            AdminUsersViewModel(container.adminRepository) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

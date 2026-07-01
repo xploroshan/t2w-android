@@ -2,11 +2,14 @@ package com.taleson2wheels.app.data.repository
 
 import com.taleson2wheels.app.data.remote.ApiResult
 import com.taleson2wheels.app.data.remote.api.AdminApi
+import com.taleson2wheels.app.data.remote.dto.AdminUser
+import com.taleson2wheels.app.data.remote.dto.BlockBody
 import com.taleson2wheels.app.data.remote.dto.BlogCard
 import com.taleson2wheels.app.data.remote.dto.ModerationAction
 import com.taleson2wheels.app.data.remote.dto.Page
 import com.taleson2wheels.app.data.remote.dto.RegistrationModeration
 import com.taleson2wheels.app.data.remote.dto.RidePost
+import com.taleson2wheels.app.data.remote.dto.RoleBody
 import com.taleson2wheels.app.data.remote.safeApiCall
 import kotlinx.serialization.json.Json
 
@@ -56,4 +59,25 @@ class AdminRepository(
         safeApiCall(json) {
             adminApi.moderateRidePost(id, ModerationAction(if (approve) "approve" else "reject")).post
         }
+
+    // ── User management ──────────────────────────────────────────────────────
+
+    suspend fun users(
+        status: String? = null,
+        cursor: String? = null,
+        limit: Int = 20,
+    ): ApiResult<Page<AdminUser>> =
+        safeApiCall(json) { adminApi.users(status = status, cursor = cursor, limit = limit) }
+
+    suspend fun approveUser(id: String): ApiResult<AdminUser> =
+        safeApiCall(json) { adminApi.approveUser(id).user }
+
+    suspend fun rejectUser(id: String): ApiResult<String> =
+        safeApiCall(json) { adminApi.rejectUser(id).id }
+
+    suspend fun setUserBlocked(id: String, blocked: Boolean): ApiResult<AdminUser> =
+        safeApiCall(json) { adminApi.blockUser(id, BlockBody(blocked)).user }
+
+    suspend fun setUserRole(id: String, role: String): ApiResult<AdminUser> =
+        safeApiCall(json) { adminApi.setUserRole(id, RoleBody(role)).user }
 }

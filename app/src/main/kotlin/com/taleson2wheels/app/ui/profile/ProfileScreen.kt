@@ -51,7 +51,7 @@ fun ProfileScreen(
     onChangePassword: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenContact: () -> Unit,
-    onOpenModeration: () -> Unit,
+    onOpenAdmin: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = viewModel(factory = factory),
 ) {
@@ -91,7 +91,7 @@ fun ProfileScreen(
                     onChangePassword = onChangePassword,
                     onOpenAbout = onOpenAbout,
                     onOpenContact = onOpenContact,
-                    onOpenModeration = onOpenModeration,
+                    onOpenAdmin = onOpenAdmin,
                 )
             }
         }
@@ -108,7 +108,7 @@ private fun ProfileBody(
     onChangePassword: () -> Unit,
     onOpenAbout: () -> Unit,
     onOpenContact: () -> Unit,
-    onOpenModeration: () -> Unit,
+    onOpenAdmin: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -148,13 +148,13 @@ private fun ProfileBody(
             items(user.earnedBadges, key = { it.id }) { BadgeRow(it) }
         }
 
-        // Role-gated moderation entry. The exact per-toggle permissions
-        // (canManageRegistrations for registrations, canApproveContent for blogs
-        // and ride tales) are enforced server-side; core members / superadmins
-        // see the entry and each tab surfaces a 403 if its toggle is off.
+        // Role-gated admin console entry. Each destination's per-toggle
+        // permissions (canApproveUsers, canManageRegistrations, canApproveContent,
+        // …) are enforced server-side; core members / superadmins see the entry
+        // and each screen surfaces a 403 if its toggle is off.
         if (user.role == "core_member" || user.role == "superadmin") {
-            item { SectionHeader("Moderation") }
-            item { LinkRow("Review queue", onOpenModeration) }
+            item { SectionHeader("Admin") }
+            item { LinkRow("Admin console", onOpenAdmin) }
         }
 
         item { SectionHeader("More") }

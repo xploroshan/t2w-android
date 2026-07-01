@@ -65,6 +65,16 @@ class ContentModerationViewModelTest {
             moderateThrows?.let { throw it }
             return RidePostResponse(ridePost(id).copy(approvalStatus = if (body.action == "approve") "approved" else "rejected"))
         }
+
+        // User-management endpoints unused in this suite.
+        override suspend fun users(status: String?, cursor: String?, limit: Int) =
+            Page<com.taleson2wheels.app.data.remote.dto.AdminUser>(items = emptyList(), nextCursor = null)
+        override suspend fun approveUser(id: String) = throw UnsupportedOperationException("not used")
+        override suspend fun rejectUser(id: String) = throw UnsupportedOperationException("not used")
+        override suspend fun blockUser(id: String, body: com.taleson2wheels.app.data.remote.dto.BlockBody) =
+            throw UnsupportedOperationException("not used")
+        override suspend fun setUserRole(id: String, body: com.taleson2wheels.app.data.remote.dto.RoleBody) =
+            throw UnsupportedOperationException("not used")
     }
 
     private val fake = FakeAdminApi()
