@@ -8,10 +8,15 @@ import com.taleson2wheels.app.data.remote.dto.MapAuditEntry
 import com.taleson2wheels.app.data.remote.dto.MapRevertRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothResponse
+import com.taleson2wheels.app.data.remote.dto.MapGpxPlannedResponse
+import com.taleson2wheels.app.data.remote.dto.MapGpxTrackResponse
 import com.taleson2wheels.app.data.remote.dto.MapStatsSession
 import com.taleson2wheels.app.data.remote.safeApiCall
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 /** Wraps the post-ride map-edit API; every method returns an [ApiResult]. */
 class MapEditRepository(
@@ -52,4 +57,29 @@ class MapEditRepository(
 
     suspend fun audit(rideId: String): ApiResult<List<MapAuditEntry>> =
         safeApiCall(json) { mapEditApi.audit(rideId).edits }
+
+    suspend fun importRecordedGpx(
+        rideId: String,
+        userId: String,
+        filename: String,
+        bytes: ByteArray,
+    ): ApiResult<MapGpxTrackResponse> = safeApiCall(json) {
+        mapEditApi.importRecordedGpx(rideId, gpxPart(filename, bytes), userId.toRequestBody(TEXT))
+    }
+
+    suspend fun importPlannedGpx(
+        rideId: String,
+        filename: String,
+        bytes: ByteArray,
+    ): ApiResult<MapGpxPlannedResponse> = safeApiCall(json) {
+        mapEditApi.importPlannedGpx(rideId, gpxPart(filename, bytes))
+    }
+
+    private fun gpxPart(filename: String, bytes: ByteArray): MultipartBody.Part =
+        MultipartBody.Part.createFormData("file", filename, bytes.toRequestBody(GPX_MEDIA))
+
+    private companion object {
+        val GPX_MEDIA = "application/gpx+xml".toMediaTypeOrNull()
+        val TEXT = "text/plain".toMediaTypeOrNull()
+    }
 }

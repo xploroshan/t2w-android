@@ -5,17 +5,23 @@ import com.taleson2wheels.app.data.remote.dto.MapAuditResponse
 import com.taleson2wheels.app.data.remote.dto.MapBreakResponse
 import com.taleson2wheels.app.data.remote.dto.MapDeleteResponse
 import com.taleson2wheels.app.data.remote.dto.MapDeletedResponse
+import com.taleson2wheels.app.data.remote.dto.MapGpxPlannedResponse
+import com.taleson2wheels.app.data.remote.dto.MapGpxTrackResponse
 import com.taleson2wheels.app.data.remote.dto.MapRevertRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothResponse
 import com.taleson2wheels.app.data.remote.dto.MapStatsResponse
 import kotlinx.serialization.json.JsonObject
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.HTTP
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 
@@ -48,6 +54,22 @@ interface MapEditApi {
     // DELETE with a body needs @HTTP(hasBody = true) — @DELETE forbids @Body.
     @HTTP(method = "DELETE", path = "api/v1/rides/{id}/live/map-edit/smooth-track", hasBody = true)
     suspend fun revertSmooth(@Path("id") id: String, @Body body: MapRevertRequest): MapDeletedResponse
+
+    // --- GPX import (multipart) ---
+    @Multipart
+    @POST("api/v1/rides/{id}/live/map-edit/track-from-gpx")
+    suspend fun importRecordedGpx(
+        @Path("id") id: String,
+        @Part file: MultipartBody.Part,
+        @Part("userId") userId: RequestBody,
+    ): MapGpxTrackResponse
+
+    @Multipart
+    @POST("api/v1/rides/{id}/live/map-edit/planned-route/from-gpx")
+    suspend fun importPlannedGpx(
+        @Path("id") id: String,
+        @Part file: MultipartBody.Part,
+    ): MapGpxPlannedResponse
 
     // --- Audit ---
     @GET("api/v1/rides/{id}/live/map-edit/audit")

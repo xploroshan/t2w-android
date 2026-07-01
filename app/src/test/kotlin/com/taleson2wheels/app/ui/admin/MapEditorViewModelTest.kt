@@ -14,6 +14,8 @@ import com.taleson2wheels.app.data.remote.dto.MapAuditResponse
 import com.taleson2wheels.app.data.remote.dto.MapBreakResponse
 import com.taleson2wheels.app.data.remote.dto.MapDeleteResponse
 import com.taleson2wheels.app.data.remote.dto.MapDeletedResponse
+import com.taleson2wheels.app.data.remote.dto.MapGpxPlannedResponse
+import com.taleson2wheels.app.data.remote.dto.MapGpxTrackResponse
 import com.taleson2wheels.app.data.remote.dto.MapRevertRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothRequest
 import com.taleson2wheels.app.data.remote.dto.MapSmoothResponse
@@ -32,7 +34,11 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.double
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okio.Buffer
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -98,6 +104,14 @@ class MapEditorViewModelTest {
                 MapSmoothResponse(points = JsonPrimitive(10))
             }
         override suspend fun revertSmooth(id: String, body: MapRevertRequest) = MapDeletedResponse(deleted = 5)
+        var recordedGpxCalls = 0
+        var recordedGpxUserId: String? = null
+        override suspend fun importRecordedGpx(id: String, file: MultipartBody.Part, userId: RequestBody): MapGpxTrackResponse {
+            recordedGpxCalls++
+            recordedGpxUserId = Buffer().also { userId.writeTo(it) }.readUtf8()
+            return MapGpxTrackResponse(inserted = 42, distanceKm = 12.3)
+        }
+        override suspend fun importPlannedGpx(id: String, file: MultipartBody.Part) = MapGpxPlannedResponse(waypointCount = 5)
         override suspend fun audit(id: String) =
             MapAuditResponse(listOf(MapAuditEntry(id = "a1", action = "track_smoothed", editedByName = "Admin", createdAt = "2026-06-01T08:00:00Z")))
     }
@@ -174,6 +188,27 @@ class MapEditorViewModelTest {
         m.saveStats(); advanceUntilIdle()
 
         assertNull(edit.lastStatsBody)
+    }
+
+    @Test
+    fun importRecordedGpx_uploads_for_the_selected_rider() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.importRecordedGpx("<gpx/>".toByteArray(), "ride.gpx"); advanceUntilIdle()
+
+        assertEquals(1, edit.recordedGpxCalls)
+        assertEquals("r1", edit.recordedGpxUserId)      // the selected rider went in the userId part
+        assertTrue(m.uiState.message!!.contains("42")) // "Imported 42 points…"
+    }
+
+    @Test
+    fun importRecordedGpx_rejects_a_file_over_the_size_cap() = runTest(mainDispatcher.dispatcher) {
+        val m = vm(); m.load("ride-1"); advanceUntilIdle()
+
+        m.importRecordedGpx(ByteArray(5 * 1024 * 1024 + 1), "big.gpx"); advanceUntilIdle()
+
+        assertEquals(0, edit.recordedGpxCalls)          // never hit the network
+        assertNotNull(m.uiState.actionError)
     }
 
     @Test
