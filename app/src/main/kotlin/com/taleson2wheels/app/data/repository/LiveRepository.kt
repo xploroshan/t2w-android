@@ -25,8 +25,12 @@ class LiveRepository(
     private val liveApi: LiveApi,
     private val json: Json,
 ) {
-    suspend fun state(rideId: String, since: String? = null): ApiResult<LiveState> =
-        safeApiCall(json) { liveApi.state(rideId, since) }
+    suspend fun state(
+        rideId: String,
+        since: String? = null,
+        viewUserId: String? = null,
+    ): ApiResult<LiveState> =
+        safeApiCall(json) { liveApi.state(rideId, since, viewUserId) }
 
     suspend fun metrics(rideId: String): ApiResult<LiveMetrics> =
         safeApiCall(json) { liveApi.metrics(rideId) }

@@ -24,6 +24,9 @@ interface LiveApi {
     suspend fun state(
         @Path("id") id: String,
         @Query("since") since: String? = null,
+        // Admin-only: returns the full recorded path for an arbitrary rider in
+        // `viewPath` (the map editor uses it to show/smooth a chosen rider's track).
+        @Query("viewUserId") viewUserId: String? = null,
     ): LiveState
 
     @POST("api/v1/rides/{id}/live")

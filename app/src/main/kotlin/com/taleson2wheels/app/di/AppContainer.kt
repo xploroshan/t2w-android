@@ -20,7 +20,9 @@ import com.taleson2wheels.app.data.remote.api.RidersApi
 import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.remote.api.UploadApi
 import com.taleson2wheels.app.data.remote.api.AdminApi
+import com.taleson2wheels.app.data.remote.api.MapEditApi
 import com.taleson2wheels.app.data.repository.AdminRepository
+import com.taleson2wheels.app.data.repository.MapEditRepository
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.BlogsRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
@@ -147,6 +149,7 @@ class AppContainer(context: Context) {
     val devicesApi: DevicesApi = retrofit.create(DevicesApi::class.java)
     val blogsApi: BlogsApi = retrofit.create(BlogsApi::class.java)
     val adminApi: AdminApi = retrofit.create(AdminApi::class.java)
+    val mapEditApi: MapEditApi = retrofit.create(MapEditApi::class.java)
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private val deviceId: String = runCatching {
@@ -176,4 +179,5 @@ class AppContainer(context: Context) {
     val liveRepository = LiveRepository(liveApi, json)
     val blogsRepository = BlogsRepository(blogsApi, json)
     val adminRepository = AdminRepository(adminApi, json)
+    val mapEditRepository = MapEditRepository(mapEditApi, json)
 }

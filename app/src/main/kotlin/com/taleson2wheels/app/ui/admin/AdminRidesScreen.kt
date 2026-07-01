@@ -62,6 +62,7 @@ fun AdminRidesScreen(
     onCreateRide: () -> Unit,
     onEditRide: (String) -> Unit,
     onOpenParticipation: (rideId: String, rideTitle: String) -> Unit,
+    onOpenMapEditor: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: AdminRidesViewModel = viewModel(factory = factory),
 ) {
@@ -126,6 +127,7 @@ fun AdminRidesScreen(
                                 busy = ride.id in state.pendingActionIds,
                                 onEdit = { onEditRide(ride.id) },
                                 onParticipation = { onOpenParticipation(ride.id, ride.title) },
+                                onMapEditor = { onOpenMapEditor(ride.id) },
                                 onDelete = { deleteTarget = ride },
                             )
                         }
@@ -173,6 +175,7 @@ private fun RideRow(
     busy: Boolean,
     onEdit: () -> Unit,
     onParticipation: () -> Unit,
+    onMapEditor: () -> Unit,
     onDelete: () -> Unit,
 ) {
     BrandCard(modifier = Modifier.fillMaxWidth().clickable(enabled = !busy, onClick = onEdit)) {
@@ -193,7 +196,7 @@ private fun RideRow(
                         Text(meta, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
-                RideOverflowMenu(enabled = !busy, onParticipation = onParticipation, onDelete = onDelete)
+                RideOverflowMenu(enabled = !busy, onParticipation = onParticipation, onMapEditor = onMapEditor, onDelete = onDelete)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ride.status?.takeIf { it.isNotBlank() }?.let { StatusChip(it) }
@@ -204,7 +207,12 @@ private fun RideRow(
 }
 
 @Composable
-private fun RideOverflowMenu(enabled: Boolean, onParticipation: () -> Unit, onDelete: () -> Unit) {
+private fun RideOverflowMenu(
+    enabled: Boolean,
+    onParticipation: () -> Unit,
+    onMapEditor: () -> Unit,
+    onDelete: () -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     IconButton(onClick = { expanded = true }, enabled = enabled) {
         Icon(Icons.Default.MoreVert, contentDescription = "Actions", tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -213,6 +221,10 @@ private fun RideOverflowMenu(enabled: Boolean, onParticipation: () -> Unit, onDe
         DropdownMenuItem(
             text = { Text("Participation") },
             onClick = { expanded = false; onParticipation() },
+        )
+        DropdownMenuItem(
+            text = { Text("Map editor") },
+            onClick = { expanded = false; onMapEditor() },
         )
         DropdownMenuItem(
             text = { Text("Delete", color = MaterialTheme.colorScheme.error) },
