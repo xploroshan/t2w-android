@@ -19,6 +19,8 @@ import com.taleson2wheels.app.data.remote.api.LiveApi
 import com.taleson2wheels.app.data.remote.api.RidersApi
 import com.taleson2wheels.app.data.remote.api.RidesApi
 import com.taleson2wheels.app.data.remote.api.UploadApi
+import com.taleson2wheels.app.data.remote.api.AdminApi
+import com.taleson2wheels.app.data.repository.AdminRepository
 import com.taleson2wheels.app.data.repository.AuthRepository
 import com.taleson2wheels.app.data.repository.BlogsRepository
 import com.taleson2wheels.app.data.repository.CatalogRepository
@@ -130,6 +132,7 @@ class AppContainer(context: Context) {
     val liveApi: LiveApi = retrofit.create(LiveApi::class.java)
     val devicesApi: DevicesApi = retrofit.create(DevicesApi::class.java)
     val blogsApi: BlogsApi = retrofit.create(BlogsApi::class.java)
+    val adminApi: AdminApi = retrofit.create(AdminApi::class.java)
 
     // ── Repositories ─────────────────────────────────────────────────────────
     private val deviceId: String = runCatching {
@@ -158,4 +161,5 @@ class AppContainer(context: Context) {
     val garageRepository = GarageRepository(garageApi, json)
     val liveRepository = LiveRepository(liveApi, json)
     val blogsRepository = BlogsRepository(blogsApi, json)
+    val adminRepository = AdminRepository(adminApi, json)
 }

@@ -67,6 +67,7 @@ object Routes {
     const val CHANGE_PASSWORD = "change-password"
     const val ABOUT = "about"
     const val CONTACT = "contact"
+    const val MODERATION = "moderation"
     fun rideDetail(id: String) = "rides/$id"
     fun rideRegister(id: String, title: String) = "rides/$id/register?title=${Uri.encode(title)}"
     fun ridePosts(id: String) = "rides/$id/posts"
@@ -257,6 +258,13 @@ fun MainScreen(factory: AppViewModelFactory) {
                     onChangePassword = { navController.navigate(Routes.CHANGE_PASSWORD) },
                     onOpenAbout = { navController.navigate(Routes.ABOUT) },
                     onOpenContact = { navController.navigate(Routes.CONTACT) },
+                    onOpenModeration = { navController.navigate(Routes.MODERATION) },
+                )
+            }
+            composable(Routes.MODERATION) {
+                com.taleson2wheels.app.ui.moderation.ModerationScreen(
+                    factory = factory,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable(Routes.EDIT_PROFILE) {
