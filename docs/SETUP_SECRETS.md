@@ -306,11 +306,23 @@ succeeds; only the Relive flyover shows its placeholder.
 
 ### CI
 
-For GitHub Actions, add **`MAPBOX_DOWNLOADS_TOKEN`** (the `sk.`) as a repository
-**secret** and export it as an env var for the build step; add
-**`MAPBOX_ACCESS_TOKEN`** (the `pk.`) the same way and write it into
-`secrets.properties` during the workflow. Both are wired for local dev today; the
-CI step is added when the Relive screen lands.
+The Relive screen has landed, so the Mapbox SDK is now a real `:app` dependency —
+CI **must** be able to download it. Add **`MAPBOX_DOWNLOADS_TOKEN`** (the `sk.`
+with `Downloads:Read`) as a **repository secret** (Settings → Secrets and
+variables → Actions → New repository secret). Both `android-ci.yml` and
+`android-emulator-ci.yml` already export it as an env var for their Gradle jobs:
+
+```yaml
+env:
+  MAPBOX_DOWNLOADS_TOKEN: ${{ secrets.MAPBOX_DOWNLOADS_TOKEN }}
+  ORG_GRADLE_PROJECT_MAPBOX_ACCESS_TOKEN: ${{ secrets.MAPBOX_ACCESS_TOKEN }}
+```
+
+Without the `MAPBOX_DOWNLOADS_TOKEN` secret the build fails to resolve
+`com.mapbox.maps:android` with a **401** from Mapbox's Maven repo. The public
+**`MAPBOX_ACCESS_TOKEN`** (`pk.`) is optional in CI — a debug build tolerates a
+blank runtime token (the Relive screen just shows its "add a token" placeholder);
+add it as a secret too if you want CI artifacts to render live tiles.
 
 > **Golden rule (again):** the `sk.` downloads token is a real secret — never
 > commit it, never paste it in chat/PRs. If it leaks, delete it at
@@ -325,7 +337,7 @@ CI step is added when the Relive screen lands.
 | API base URL | `secrets.properties` → `T2W_API_BASE_URL*` | your backend host | Yes (defaults to prod/emulator) |
 | Maps key | `secrets.properties` → `MAPS_API_KEY` | Google Cloud Console | Yes (blank map) |
 | Mapbox runtime (`pk.`) | `secrets.properties` → `MAPBOX_ACCESS_TOKEN` | account.mapbox.com → Tokens | Yes (Relive placeholder) |
-| Mapbox downloads (`sk.`) | `~/.gradle/gradle.properties` → `MAPBOX_DOWNLOADS_TOKEN` | account.mapbox.com → Tokens (Downloads:Read) | Yes, until the Relive screen is wired |
+| Mapbox downloads (`sk.`) | `~/.gradle/gradle.properties` (local) · repo secret (CI) → `MAPBOX_DOWNLOADS_TOKEN` | account.mapbox.com → Tokens (Downloads:Read) | **No** — the build now needs it to fetch the Mapbox SDK |
 | FCM | `app/google-services.json` | Firebase Console | Yes (no push) |
 | Sentry DSN | `secrets.properties` → `SENTRY_DSN` | sentry.io | Yes (no crash reports) |
 | Release signing | `keystore.properties` + `*.jks` | `keytool` (you generate it) | Yes (debug‑signed) |

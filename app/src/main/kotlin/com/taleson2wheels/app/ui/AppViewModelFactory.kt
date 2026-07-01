@@ -30,6 +30,7 @@ import com.taleson2wheels.app.ui.moderation.BlogModerationViewModel
 import com.taleson2wheels.app.ui.moderation.ModerationViewModel
 import com.taleson2wheels.app.ui.moderation.RidePostModerationViewModel
 import com.taleson2wheels.app.ui.notifications.NotificationsViewModel
+import com.taleson2wheels.app.ui.relive.ReliveViewModel
 import com.taleson2wheels.app.ui.profile.ProfileEditViewModel
 import com.taleson2wheels.app.ui.profile.ProfileViewModel
 import com.taleson2wheels.app.ui.riders.LeaderboardViewModel
@@ -80,6 +81,9 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
 
         modelClass.isAssignableFrom(LiveInsightsViewModel::class.java) ->
             LiveInsightsViewModel(container.liveRepository) as T
+
+        modelClass.isAssignableFrom(ReliveViewModel::class.java) ->
+            ReliveViewModel(container.liveRepository, container.json) as T
 
         modelClass.isAssignableFrom(LeaderboardViewModel::class.java) ->
             LeaderboardViewModel(container.ridersRepository) as T
