@@ -51,11 +51,52 @@ data class RideDetail(
     val activeRegistrations: Int = 0,
     val currentUserRegistered: Boolean = false,
     val currentUserApprovalStatus: String? = null,
+    /** Server-resolved dynamic registration form config (see [RegistrationConfig]). */
+    val registrationConfig: RegistrationConfig? = null,
 )
 
 /** `/rides/{id}` wraps the ride in `{ "ride": ... }`. */
 @Serializable
 data class RideDetailResponse(val ride: RideDetail)
+
+/**
+ * Flattened, client-ready registration form config the backend resolves per ride
+ * (`RideDetail.registrationConfig`). The registration screen renders its form from
+ * this: only [fields] are shown, `select` fields use their [RegField.options], and
+ * the agreement + payment sections follow the flags below.
+ */
+@Serializable
+data class RegistrationConfig(
+    val fields: List<RegField> = emptyList(),
+    val requireCancellationAgreement: Boolean = true,
+    val requireIndemnity: Boolean = true,
+    val cancellationText: String = "",
+    val payment: RegPaymentConfig = RegPaymentConfig(),
+)
+
+/** One field in the dynamic registration form. `key` matches [RegisterRideRequest]. */
+@Serializable
+data class RegField(
+    val key: String,
+    val label: String,
+    val type: String, // "text" | "tel" | "email" | "select"
+    val required: Boolean = false,
+    val options: List<String> = emptyList(),
+)
+
+@Serializable
+data class RegPaymentConfig(
+    val mode: String = "none", // "screenshot" | "transaction_id" | "both" | "none"
+    val fee: Double = 0.0,
+    val upiIds: List<RegUpiId> = emptyList(),
+    val bankAccounts: List<RegBankAccount> = emptyList(),
+)
+
+@Serializable
+data class RegUpiId(val label: String = "", val id: String = "")
+
+@Serializable
+data class RegBankAccount(val label: String = "", val details: String = "")
 
 /** Body for `POST /rides/{id}/register` — all fields optional; server fills defaults. */
 @Serializable
@@ -68,6 +109,8 @@ data class RegisterRideRequest(
     val emergencyContactPhone: String? = null,
     val bloodGroup: String? = null,
     val foodPreference: String? = null,
+    val ridingType: String? = null,
+    val referredBy: String? = null,
     val vehicleModel: String? = null,
     val vehicleRegNumber: String? = null,
     val tshirtSize: String? = null,

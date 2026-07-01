@@ -8,39 +8,51 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.taleson2wheels.app.data.remote.ApiResult
+import com.taleson2wheels.app.data.remote.dto.RegField
+import com.taleson2wheels.app.data.remote.dto.RegPaymentConfig
 import com.taleson2wheels.app.data.remote.dto.RegisterRideRequest
+import com.taleson2wheels.app.data.remote.dto.RegistrationConfig
 import com.taleson2wheels.app.data.repository.RidesRepository
 import com.taleson2wheels.app.data.repository.UploadRepository
 import kotlinx.coroutines.launch
 
 @Immutable
 data class RegistrationUiState(
-    val riderName: String = "",
-    val email: String = "",
-    val phone: String = "",
-    val emergencyContactName: String = "",
-    val emergencyContactPhone: String = "",
-    val bloodGroup: String = "",
-    val vehicleModel: String = "",
-    val vehicleRegNumber: String = "",
-    val tshirtSize: String = "",
-    val upiTransactionId: String = "",
-    val accommodationType: String = "bed",
-    val paymentScreenshotUrl: String? = null,
+    val isLoadingConfig: Boolean = true,
+    val configError: String? = null,
+    val config: RegistrationConfig? = null,
+    /** Field values keyed by [RegField.key]. */
+    val values: Map<String, String> = emptyMap(),
     val agreedCancellationTerms: Boolean = false,
     val agreedIndemnity: Boolean = false,
+    val upiTransactionId: String = "",
+    val paymentScreenshotUrl: String? = null,
     val isUploading: Boolean = false,
     val isSubmitting: Boolean = false,
     val error: String? = null,
     val confirmationCode: String? = null,
 ) {
     val done: Boolean get() = confirmationCode != null
+
     val canSubmit: Boolean
-        get() = phone.isNotBlank() && agreedCancellationTerms && agreedIndemnity &&
-            !isSubmitting && !isUploading
+        get() {
+            val cfg = config ?: return false
+            if (isSubmitting || isUploading) return false
+            val allRequiredFilled = cfg.fields
+                .filter { it.required }
+                .all { values[it.key].orEmpty().isNotBlank() }
+            if (!allRequiredFilled) return false
+            if (cfg.requireCancellationAgreement && !agreedCancellationTerms) return false
+            if (cfg.requireIndemnity && !agreedIndemnity) return false
+            return true
+        }
 }
 
-/** Drives the ride-registration form, including payment-screenshot upload. */
+/**
+ * Drives the ride-registration form. The form is DYNAMIC: it loads the ride's
+ * [RegistrationConfig] (which fields to collect, their option lists, the required
+ * agreements, and the payment mode) and the screen renders itself from that.
+ */
 class RegistrationViewModel(
     private val ridesRepository: RidesRepository,
     private val uploadRepository: UploadRepository,
@@ -49,17 +61,28 @@ class RegistrationViewModel(
     var uiState by mutableStateOf(RegistrationUiState())
         private set
 
-    fun onRiderNameChange(v: String) { uiState = uiState.copy(riderName = v, error = null) }
-    fun onEmailChange(v: String) { uiState = uiState.copy(email = v, error = null) }
-    fun onPhoneChange(v: String) { uiState = uiState.copy(phone = v, error = null) }
-    fun onEmergencyNameChange(v: String) { uiState = uiState.copy(emergencyContactName = v, error = null) }
-    fun onEmergencyPhoneChange(v: String) { uiState = uiState.copy(emergencyContactPhone = v, error = null) }
-    fun onBloodGroupChange(v: String) { uiState = uiState.copy(bloodGroup = v, error = null) }
-    fun onVehicleModelChange(v: String) { uiState = uiState.copy(vehicleModel = v, error = null) }
-    fun onVehicleRegChange(v: String) { uiState = uiState.copy(vehicleRegNumber = v, error = null) }
-    fun onTshirtChange(v: String) { uiState = uiState.copy(tshirtSize = v, error = null) }
-    fun onUpiChange(v: String) { uiState = uiState.copy(upiTransactionId = v, error = null) }
-    fun onAccommodationChange(v: String) { uiState = uiState.copy(accommodationType = v, error = null) }
+    fun load(rideId: String) {
+        viewModelScope.launch {
+            uiState = uiState.copy(isLoadingConfig = true, configError = null)
+            when (val r = ridesRepository.ride(rideId)) {
+                is ApiResult.Success ->
+                    uiState = uiState.copy(
+                        isLoadingConfig = false,
+                        // A backend that predates registrationConfig (or a config-less
+                        // ride) falls back to a sensible default so the form still works.
+                        config = r.data.registrationConfig ?: fallbackConfig(r.data.fee),
+                    )
+                is ApiResult.Failure ->
+                    uiState = uiState.copy(isLoadingConfig = false, configError = r.error.userMessage)
+            }
+        }
+    }
+
+    fun onFieldChange(key: String, value: String) {
+        uiState = uiState.copy(values = uiState.values + (key to value), error = null)
+    }
+
+    fun onUpiTransactionIdChange(v: String) { uiState = uiState.copy(upiTransactionId = v, error = null) }
     fun onAgreeCancellation(v: Boolean) { uiState = uiState.copy(agreedCancellationTerms = v, error = null) }
     fun onAgreeIndemnity(v: Boolean) { uiState = uiState.copy(agreedIndemnity = v, error = null) }
 
@@ -78,17 +101,23 @@ class RegistrationViewModel(
         viewModelScope.launch {
             uiState = uiState.copy(isSubmitting = true, error = null)
             val s = uiState
+            val v = s.values
+            fun field(key: String) = v[key]?.trim()?.ifBlank { null }
             val body = RegisterRideRequest(
-                riderName = s.riderName.ifBlank { null },
-                email = s.email.ifBlank { null },
-                phone = s.phone,
-                emergencyContactName = s.emergencyContactName.ifBlank { null },
-                emergencyContactPhone = s.emergencyContactPhone.ifBlank { null },
-                bloodGroup = s.bloodGroup.ifBlank { null },
-                vehicleModel = s.vehicleModel.ifBlank { null },
-                vehicleRegNumber = s.vehicleRegNumber.ifBlank { null },
-                tshirtSize = s.tshirtSize.ifBlank { null },
-                accommodationType = s.accommodationType,
+                riderName = field("riderName"),
+                email = field("email"),
+                phone = v["phone"].orEmpty().trim(),
+                address = field("address"),
+                emergencyContactName = field("emergencyContactName"),
+                emergencyContactPhone = field("emergencyContactPhone"),
+                bloodGroup = field("bloodGroup"),
+                foodPreference = field("foodPreference"),
+                ridingType = field("ridingType"),
+                referredBy = field("referredBy"),
+                vehicleModel = field("vehicleModel"),
+                vehicleRegNumber = field("vehicleRegNumber"),
+                tshirtSize = field("tshirtSize"),
+                // accommodationType is assigned server-side; never sent from here.
                 upiTransactionId = s.upiTransactionId.ifBlank { null },
                 paymentScreenshot = s.paymentScreenshotUrl,
                 agreedCancellationTerms = s.agreedCancellationTerms,
@@ -101,5 +130,22 @@ class RegistrationViewModel(
                     uiState = uiState.copy(isSubmitting = false, error = r.error.userMessage)
             }
         }
+    }
+
+    private companion object {
+        // Used only when the ride detail carries no registrationConfig (older
+        // backend). Intentionally minimal — the server config is the real source.
+        fun fallbackConfig(fee: Double) = RegistrationConfig(
+            fields = listOf(
+                RegField("riderName", "Name (optional — defaults to your profile)", "text"),
+                RegField("phone", "Phone", "tel", required = true),
+                RegField("email", "Email", "email"),
+                RegField("emergencyContactName", "Emergency contact name", "text"),
+                RegField("emergencyContactPhone", "Emergency contact phone", "tel"),
+            ),
+            requireCancellationAgreement = true,
+            requireIndemnity = true,
+            payment = RegPaymentConfig(mode = "screenshot", fee = fee),
+        )
     }
 }
