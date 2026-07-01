@@ -24,12 +24,21 @@ data class BlogCard(
     val videoUrl: String? = null,
     val readTime: Int = 0,
     val likes: Int = 0,
+    /** Whether the signed-in caller has liked this post; always false when anonymous. */
+    val likedByMe: Boolean = false,
     val approvalStatus: String? = null,
 )
 
 /** `/blogs/{id}` wraps the post in `{ "blog": ... }`. */
 @Serializable
 data class BlogResponse(val blog: BlogCard)
+
+/**
+ * Response of `POST`/`DELETE /api/v1/blogs/{id}/like` — the fresh, server-authoritative
+ * like count and this caller's like flag. Mirrors the `LikeState` schema in the OpenAPI spec.
+ */
+@Serializable
+data class LikeState(val likes: Int, val likedByMe: Boolean)
 
 /**
  * Request body for `POST /api/v1/blogs` (privileged roles only). Mirrors the

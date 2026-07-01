@@ -107,7 +107,7 @@ class AppViewModelFactory(private val container: AppContainer) : ViewModelProvid
             BlogComposerViewModel(container.blogsRepository, container.uploadRepository) as T
 
         modelClass.isAssignableFrom(BlogDetailViewModel::class.java) ->
-            BlogDetailViewModel(container.blogsRepository) as T
+            BlogDetailViewModel(container.blogsRepository, container.authRepository) as T
 
         else -> throw IllegalArgumentException("Unknown ViewModel class: ${modelClass.name}")
     }

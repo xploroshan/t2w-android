@@ -18,11 +18,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -52,10 +55,18 @@ fun BlogDetailScreen(
 ) {
     LaunchedEffect(blogId) { viewModel.load(blogId) }
     val state = viewModel.uiState
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(state.likeError) {
+        state.likeError?.let {
+            snackbarHostState.showSnackbar(it)
+            viewModel.clearLikeError()
+        }
+    }
 
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(state.blog?.title ?: "Story", maxLines = 1) },
@@ -76,7 +87,7 @@ fun BlogDetailScreen(
             when {
                 state.isLoading -> LoadingView()
                 state.error != null -> ErrorView(state.error, { viewModel.load(blogId) })
-                state.blog != null -> BlogDetailBody(state.blog)
+                state.blog != null -> BlogDetailBody(state.blog, onToggleLike = viewModel::toggleLike)
             }
         }
     }
@@ -84,7 +95,7 @@ fun BlogDetailScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun BlogDetailBody(blog: BlogCard, modifier: Modifier = Modifier) {
+private fun BlogDetailBody(blog: BlogCard, onToggleLike: () -> Unit, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val embedUrl = blog.videoUrl?.takeIf { blog.isVlog && it.isNotBlank() }?.let { youTubeEmbedUrl(it) }
     Column(
@@ -136,6 +147,7 @@ private fun BlogDetailBody(blog: BlogCard, modifier: Modifier = Modifier) {
                     }
                 }
             }
+            LikeButton(liked = blog.likedByMe, count = blog.likes, onClick = onToggleLike)
             // A vlog whose link isn't an embeddable YouTube URL still gets a way out.
             if (blog.isVlog && embedUrl == null && !blog.videoUrl.isNullOrBlank()) {
                 SecondaryButton(

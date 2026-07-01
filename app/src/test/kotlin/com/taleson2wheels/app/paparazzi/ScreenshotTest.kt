@@ -193,19 +193,23 @@ class ScreenshotTest {
             AppTopBar("Stories")
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 BlogCardItem(
-                    BlogCard(
+                    blog = BlogCard(
                         id = "b1", title = "Chasing the Western Ghats",
                         excerpt = "Three days, two mountain passes, and one unforgettable monsoon ride through Karnataka.",
-                        authorName = "Aditi R", readTime = 6,
+                        authorName = "Aditi R", readTime = 6, likes = 24, likedByMe = true,
                     ),
-                ) {}
+                    onClick = {},
+                    onToggleLike = {},
+                )
                 BlogCardItem(
-                    BlogCard(
+                    blog = BlogCard(
                         id = "b2", title = "Building a long-distance touring setup",
                         excerpt = "What actually mattered after 12,000 km on the saddle.",
-                        authorName = "Vikram S", readTime = 9, isVlog = true,
+                        authorName = "Vikram S", readTime = 9, isVlog = true, likes = 8,
                     ),
-                ) {}
+                    onClick = {},
+                    onToggleLike = {},
+                )
             }
         }
     }
