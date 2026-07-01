@@ -152,20 +152,4 @@ class RelivePlaybackTest {
         assertEquals("0:05", RelivePlayback.formatClock(5_000L))
         assertEquals("1:05", RelivePlayback.formatClock(65_000L))
     }
-
-    @Test
-    fun downsample_caps_point_count_and_keeps_endpoints() {
-        val many = (0..99).map { pt(it.toDouble(), it.toDouble()) }
-        val out = RelivePlayback.downsample(many, 10)
-
-        assertTrue(out.size <= 11)
-        assertEquals(many.first(), out.first())
-        assertEquals(many.last(), out.last())
-    }
-
-    @Test
-    fun downsample_returns_input_when_already_small() {
-        val few = listOf(pt(1.0, 1.0), pt(2.0, 2.0))
-        assertEquals(few, RelivePlayback.downsample(few, 10))
-    }
 }

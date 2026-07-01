@@ -1,9 +1,15 @@
 package com.taleson2wheels.app.ui.relive
 
+import android.view.View
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.mapbox.common.MapboxOptions
 import com.mapbox.geojson.LineString
 import com.mapbox.geojson.Point
@@ -53,6 +59,9 @@ fun ReliveMap(
     sample: ReliveSample?,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     // Map domain points → Mapbox points once per track (stable reference across
     // playback frames), so the update block can cheaply detect a real track change
     // by reference instead of rebuilding/rehashing the list every frame.
@@ -60,24 +69,35 @@ fun ReliveMap(
     val plannedPts = remember(planned) { planned.map { Point.fromLngLat(it.lng, it.lat) } }
     val holder = remember { ReliveMapHolder() }
 
+    // Create the MapView once (not per recomposition). The global token must be set
+    // before the first MapView is constructed.
+    val mapView = remember {
+        MapboxOptions.accessToken = token
+        MapView(context).apply { id = View.generateViewId() }
+    }
+
+    // v11 MapView is NOT auto-lifecycle inside AndroidView — forward events and
+    // destroy on dispose, or the native map leaks / crashes when backgrounded.
+    DisposableEffect(lifecycleOwner, mapView) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> mapView.onStart()
+                Lifecycle.Event.ON_STOP -> mapView.onStop()
+                Lifecycle.Event.ON_DESTROY -> mapView.onDestroy()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            mapView.onDestroy()
+        }
+    }
+
     AndroidView(
         modifier = modifier,
-        factory = { ctx ->
-            // The global token must be set before the first MapView is created.
-            MapboxOptions.accessToken = token
-            MapView(ctx).apply {
-                // v11 MapView is lifecycle-aware via the view tree's LifecycleOwner
-                // (AndroidView provides it), so start/stop/destroy are automatic.
-                mapboxMap.setCamera(
-                    CameraOptions.Builder()
-                        .center(recordedPts.firstOrNull() ?: DEFAULT_CENTER)
-                        .zoom(if (recordedPts.isNotEmpty()) FLYOVER_ZOOM else OVERVIEW_ZOOM)
-                        .pitch(FLYOVER_PITCH)
-                        .build(),
-                )
-            }
-        },
-        update = { mapView ->
+        factory = { mapView },
+        update = { view ->
             // Reload the style only when the drawn geometry actually changed (rider
             // switch / first track), never on a mere playback tick. The recorded +
             // planned lines are style layers; the annotation plugin re-adds the
@@ -85,7 +105,7 @@ fun ReliveMap(
             if (holder.drawnRecorded !== recordedPts || holder.drawnPlanned !== plannedPts) {
                 holder.drawnRecorded = recordedPts
                 holder.drawnPlanned = plannedPts
-                mapView.mapboxMap.loadStyle(
+                view.mapboxMap.loadStyle(
                     style(Style.STANDARD_SATELLITE) {
                         +rasterDemSource(DEM_SOURCE) {
                             url(TERRAIN_DEM_URL)
@@ -115,12 +135,22 @@ fun ReliveMap(
                         }
                     },
                 )
+                // The initial framing before playback starts.
+                recordedPts.firstOrNull()?.let { start ->
+                    view.mapboxMap.setCamera(
+                        CameraOptions.Builder()
+                            .center(start)
+                            .zoom(FLYOVER_ZOOM)
+                            .pitch(FLYOVER_PITCH)
+                            .build(),
+                    )
+                }
             }
 
             // Create the marker manager once; it re-attaches to each loaded style
             // internally, so it need not be recreated on a style reload.
             val mgr = holder.markerManager
-                ?: mapView.annotations.createCircleAnnotationManager().also { holder.markerManager = it }
+                ?: view.annotations.createCircleAnnotationManager().also { holder.markerManager = it }
 
             // Every frame: move the marker + chase camera to the interpolated sample.
             sample?.let { s ->
@@ -139,7 +169,7 @@ fun ReliveMap(
                     existing.point = here
                     mgr.update(existing)
                 }
-                mapView.mapboxMap.setCamera(
+                view.mapboxMap.setCamera(
                     CameraOptions.Builder()
                         .center(here)
                         .zoom(FLYOVER_ZOOM)
@@ -152,9 +182,7 @@ fun ReliveMap(
     )
 }
 
-private val DEFAULT_CENTER: Point = Point.fromLngLat(77.59, 12.97) // Bengaluru
 private const val FLYOVER_ZOOM = 15.5
-private const val OVERVIEW_ZOOM = 6.0
 private const val FLYOVER_PITCH = 62.0
 private const val TERRAIN_EXAGGERATION = 1.3
 private const val DEM_SOURCE = "relive-dem"

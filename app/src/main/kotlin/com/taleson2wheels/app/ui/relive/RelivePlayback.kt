@@ -6,7 +6,6 @@ import java.time.Instant
 import java.time.OffsetDateTime
 import kotlin.math.atan2
 import kotlin.math.cos
-import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /** One point on the flyover timeline: a position tagged with its offset (ms) from track start. */
@@ -199,21 +198,5 @@ object RelivePlayback {
         return runCatching { Instant.parse(iso).toEpochMilli() }
             .recoverCatching { OffsetDateTime.parse(iso).toInstant().toEpochMilli() }
             .getOrNull()
-    }
-
-    /** Down-sample a path to at most [max] points for a lightweight overlay polyline. */
-    fun downsample(points: List<LivePathPoint>, max: Int): List<LivePathPoint> {
-        if (max <= 0 || points.size <= max) return points
-        val step = points.size.toDouble() / max
-        val out = ArrayList<LivePathPoint>(max)
-        var acc = 0.0
-        var i = 0
-        while (i < points.size && out.size < max) {
-            out.add(points[i])
-            acc += step
-            i = acc.roundToInt()
-        }
-        if (out.lastOrNull() != points.last()) out.add(points.last())
-        return out
     }
 }
